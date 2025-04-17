@@ -1,7 +1,7 @@
 # grams-tof-library
 
 This project combines the following existing libraries:
-- **FlightOps/Time-of-Flight**: ToF DAQ library
+- **FlightOps/Time-of-Flight**: ToF DAQ library based on Tofpet2 library
 
 ## Requirements
 ### Ubuntu (for FlightOps)
@@ -12,6 +12,9 @@ This project combines the following existing libraries:
 - **Boost** ≥ 1.88.0 (with Boost.Python)
 - **ROOT** ≥ 6.28.02
 
+Tofpet2 officially supports Ubuntu 20.04 and 22.04, as well as RHEL/CentOS versions 7 through 9.
+See [README.md](FlightOps/Time-of-Flight/external/sw_daq_tofpet2-2025.01.24/README.md) for Tofpet2. Changes were applied due to the limited expandability of the original implementation.
+
 #### Install essential development packages:
 ```bash
 sudo apt update
@@ -20,7 +23,18 @@ sudo apt install python3-dev libaio-dev libaio-dev
 ---
 
 #### Building Boost with Boost.Python
-See [FlightOps/Documents/BOOST_BUILD.md](FlightOps/Documents/BOOST_BUILD.md) for detailed instructions on building Boost with Boost.Python on Ubuntu and macOS.
+See [BOOST_BUILD.md](FlightOps/Documents/BOOST_BUILD.md) for detailed instructions on building Boost with Boost.Python on Ubuntu and macOS.
+
+## Building 
+```bash
+mkdir build
+cd build
+cmake ../.
+make -j$(nproc)  # make using 50% of your cores.
+make install # copy lib/bin/dat to install directoy(install).
+cd ../install
+sudo driver/INSTALL_DRIVERS.sh
+```
 
 ## Environment
 ```bash
