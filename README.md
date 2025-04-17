@@ -4,36 +4,23 @@ This project combines the following existing libraries:
 - **FlightOps/Time-of-Flight**: ToF DAQ library
 
 ## Requirements
-- **Python** >= 3.10  
-- **Boost** >= 1.88.0 (with Boost.Python)
+### Ubuntu (for FlightOps)
+- **Python** ≥ 3.10  
 - **CMake** ≥ 3.0
----
+- **AIO** ≥ 0.3.112-13
+- **Iniparser** ≥ 4.1-4
+- **Boost** ≥ 1.88.0 (with Boost.Python)
+- **ROOT** ≥ 6.28.02
 
-## Building Boost with Boost.Python
-### Ubuntu (or Debian-based systems)
-On Ubuntu, Boost's build system can usually detect the system-installed Python automatically.  
-You do **not** need a `user-config.jam`.
-Make sure the necessary development packages are installed:
-
+#### Install essential development packages:
 ```bash
 sudo apt update
-sudo apt install python3-dev
-./bootstrap.sh --prefix="$HOME/work/software/boost_1_88_0" --includedir=headers --libdir=dist --with-python=python3
-./b2 --clean-all
-./b2 install 
+sudo apt install python3-dev libaio-dev libaio-dev
 ```
-### Homebrew (macOS)
-Boost.Python requires a `user-config.jam` file to build correctly when using Python installed via Homebrew.
-See `FlightOps/Documents/boost-user-config-homebrew.jam` for an example.
+---
 
-```bash
-cp -a FlightOps/Documents/boost-user-config-homebrew.jam $HOME/work/software/boost_1_88_0/user-config.jam
-vim user-config.jam
-./bootstrap.sh --prefix="$HOME/work/software/boost_1_88_0" --includedir=headers --libdir=dist --with-python=python3
-./b2 --clean-all
-./b2 install --user-config=./user-config.jam
-```
-
+#### Building Boost with Boost.Python
+See [FlightOps/Documents/BOOST_BUILD.md](FlightOps/Documents/BOOST_BUILD.md) for detailed instructions on building Boost with Boost.Python on Ubuntu and macOS.
 
 ## Environment
 ```bash
