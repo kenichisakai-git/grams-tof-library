@@ -105,7 +105,10 @@ install(TARGETS
   convert_raw_to_singles.exe
   convert_raw_to_group.exe
   convert_raw_to_coincidence.exe
-  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/Tofpet2
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/Tofpet2)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pytools/ DESTINATION ${CMAKE_INSTALL_PREFIX}/pytools/Tofpet2)
+

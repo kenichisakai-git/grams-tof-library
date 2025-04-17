@@ -26,8 +26,11 @@ int main(int argc, char *argv[])
 		unsigned long bs = 128*1024;
 		char *buffer = new char[bs];
 
-		fread(buffer, 8, 8, inputFileRaw);
-		fwrite(buffer, 8, 8, outputFileRaw);
+		size_t out = fread(buffer, 8, 8, inputFileRaw);
+    if (out != 8) {
+      fprintf(stderr, "Error: expected to read 8 items, but read %zu items.\n", out);
+    }
+ 		fwrite(buffer, 8, 8, outputFileRaw);
 
 		unsigned long stepBegin, stepEnd;
 		long long stepFirstFrame, stepLastFrame;

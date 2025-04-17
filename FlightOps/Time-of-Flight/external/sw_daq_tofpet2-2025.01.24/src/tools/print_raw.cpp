@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 	long startOffset, endOffset;
 	float step1, step2;
 	RawDataFrame *tmpRawDataFrame = new RawDataFrame;
-	while(fscanf(indexFile, "%ld %ld %*lld %*lld %f %f\n", &startOffset, &endOffset, &step1, &step2) == 4) {
+	while(fscanf(indexFile, "%ld %ld %*d %*d %f %f\n", &startOffset, &endOffset, &step1, &step2) == 4) {
 		fseek(dataFile, startOffset, SEEK_SET);
 		
 		bool firstFrame = true;
@@ -89,9 +89,15 @@ int main(int argc, char *argv[])
 		unsigned long long sumEvents = 0;
 		
 		while(ftell(dataFile) < endOffset) {
-			fread((void *)(tmpRawDataFrame->data), sizeof(uint64_t), 2, dataFile);
+			size_t out = fread((void *)(tmpRawDataFrame->data), sizeof(uint64_t), 2, dataFile);
+      if (out != 2) {
+        fprintf(stderr, "Error: expected to read 2, but read %zu.\n", out);
+      }
 			auto frameSize = tmpRawDataFrame->getFrameSize();
-			fread((void *)((tmpRawDataFrame->data)+2), sizeof(uint64_t), frameSize-2, dataFile);
+			out = fread((void *)((tmpRawDataFrame->data)+2), sizeof(uint64_t), frameSize-2, dataFile);
+      if (out != frameSize - 2) {
+        fprintf(stderr, "Error: expected to read %u, but read %zu.\n", frameSize - 2, out);
+      }
 			
 			auto frameID = tmpRawDataFrame->getFrameID();
 			auto frameLost = tmpRawDataFrame->getFrameLost();

@@ -26,8 +26,10 @@ void FrameServer::allocateSharedMemory(const char * shmName, int &shmfd, RawData
 	}
 	
 	unsigned long shmSize = MaxRawDataFrameQueueSize * sizeof(RawDataFrame);
-	ftruncate(shmfd, shmSize);
-	
+	if (ftruncate(shmfd, shmSize) == -1) {
+    perror("ftruncate failed");	
+  }
+
 	shmPtr = (RawDataFrame *)mmap(NULL, 
 						  shmSize, 
 						  PROT_READ | PROT_WRITE, 

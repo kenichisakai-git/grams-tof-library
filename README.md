@@ -38,32 +38,8 @@ sudo driver/INSTALL_DRIVERS.sh
 
 ## Environment
 ```bash
-export PLIB=$HOME/work/bess/bess-library/install
-source $PLIB/Tool/config/bess_env.bash
-```
-
-## Analysis
-### params
-```bash
-params75_250411_clib 
-https://drive.google.com/file/d/1lZOkobAUrGxd_cStMqfEk9kSkADnI21n/view?usp=sharing
-```
-
-### generating DSTs
-```bash
-cd flight/run1001
-cd params
-proot.exe TOFQ -p -o ../dst/bessp_dst_NEG2025v1.root ../raw/bessp_raw*.dat 
-```
-
-### filling histograms on an event-by-event basis
-```bash
-vim $PLIB_SEL_DIRECTORY/TofChk_MT03.C #modify the selector
-cd flight/run1001
-cd params
-root
-root [0] .x $PLIB/selector_user/dstsel.C("../dst/bessp_dst_NEG2025v1.root","TofChk_MT03")
-root ../dst/dstsel_NEG2025v1-TofChk_MT03.root #check histograms
+export GRAMS_TOF_LIB=$HOME/work/grams/grams-tof-library/install
+source $GRAMS_TOF_LIB/Tool/config/grams_env.bash
 ```
 
 ## linked by external library

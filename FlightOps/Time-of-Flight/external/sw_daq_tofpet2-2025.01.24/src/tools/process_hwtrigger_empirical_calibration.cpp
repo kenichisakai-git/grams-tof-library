@@ -634,8 +634,8 @@ void calibrateAllModules(SystemConfig *config, CalibrationEntry *calibrationTabl
 			unsigned long portID = (gAsicID >> 11) % 32;
 			
 			char summaryFilePrefix[1024];
-			sprintf(summaryFilePrefix, "%s_%02d_%02d_%02d", outputFilePrefix, portID, slaveID, asicID);
-			printf("Processing ASIC (%2d %2d %2d)\n", portID, slaveID, asicID);
+			sprintf(summaryFilePrefix, "%s_%02ld_%02ld_%02ld", outputFilePrefix, portID, slaveID, asicID);
+			printf("Processing ASIC (%2ld %2ld %2ld)\n", portID, slaveID, asicID);
             fflush(stdout);
 			calibrateAsic(gAsicID, tmpDataFile, calibrationTable, summaryFilePrefix, config);
 		

@@ -34,32 +34,32 @@ endif()
 find_package(ROOT REQUIRED)
 include(${ROOT_USE_FILE})
 
-
 add_subdirectory(FlightOps/Time-of-Flight)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tool/ DESTINATION ${CMAKE_INSTALL_PREFIX}/Tool)
 
-#install(EXPORT GramsLibraryTargets
-#    FILE GramsLibraryTargets.cmake
-#    NAMESPACE Grams::
-#    DESTINATION lib/cmake/GramsLibrary
-#)
+install(EXPORT GramsLibraryTargets
+    FILE GramsLibraryTargets.cmake
+    NAMESPACE Grams::
+    DESTINATION lib/cmake/GramsLibrary
+)
 
-#include(CMakePackageConfigHelpers)
+include(CMakePackageConfigHelpers)
 
-#write_basic_package_version_file(
-#    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfigVersion.cmake"
-#    VERSION 1.0
-#    COMPATIBILITY AnyNewerVersion
-#)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfigVersion.cmake"
+    VERSION 1.0
+    COMPATIBILITY AnyNewerVersion
+)
 
-#configure_package_config_file(
-#    "${CMAKE_CURRENT_SOURCE_DIR}/Common/cmake/GramsLibraryConfig.cmake.in"
-#    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfig.cmake"
-#    INSTALL_DESTINATION lib/cmake/GramsLibrary
-#)
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/Common/cmake/GramsLibraryConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/GramsLibrary
+)
 
-#install(FILES
-#    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfig.cmake"
-#    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfigVersion.cmake"
-#    DESTINATION lib/cmake/GramsLibrary
-#)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/GramsLibraryConfigVersion.cmake"
+    DESTINATION lib/cmake/GramsLibrary
+)
 

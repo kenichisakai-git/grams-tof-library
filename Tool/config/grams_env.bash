@@ -1,0 +1,5 @@
+# for GRAMS ToF DAQ
+export PATH=$PATH:$GRAMS_TOF_LIB/bin
+export PATH=$PATH:$GRAMS_TOF_LIB/bin/Tofpet2
+export LD_LIBRARY_PATH=$GRAMS_TOF_LIB/lib:$LD_LIBRARY_PATH
+ 

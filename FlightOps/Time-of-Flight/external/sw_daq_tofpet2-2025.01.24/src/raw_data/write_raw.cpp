@@ -195,12 +195,19 @@ void DataWriter::writeHeader(unsigned long long fileCreationDAQTime, double daqS
 		currentBuffer.size =  sizeof(uint64_t)*8;
 	}
 	else {
-		write(this->fd, (void *)&header, sizeof(uint64_t)*8);
+    ssize_t result = write(this->fd, (void *)&header, sizeof(uint64_t)*8);
+    if (result == -1) {
+      perror("Write failed");
+    }
 	}
 }
 
 void DataWriter::writeCalibrationData(CalibrationData c){
-	write(this->fd, &c, sizeof(CalibrationData));
+  ssize_t result = write(this->fd, &c, sizeof(CalibrationData));
+  if (result == -1) {
+    perror("Write failed");
+  }
+
 	global_offset += sizeof(CalibrationData);
 }
 
@@ -339,7 +346,8 @@ int main(int argc, char *argv[])
 
 			stepStartOffset = writer.getCurrentPosition();
 
-			r = fprintf(tempFile, "%f\t%f\t%ld\t%ld\t", blockHeader.step1, blockHeader.step2, stepStartOffset, stepFirstFrameID);
+      r = fprintf(tempFile, "%f\t%f\t%ld\t%lld\t", blockHeader.step1, blockHeader.step2, stepStartOffset, stepFirstFrameID);
+
 			if(r < 0) { fprintf(stderr, "ERROR writing to %s: %d %s\n", fNameRaw, errno, strerror(errno)); exit(1); }
 			r = fflush(tempFile);
 			if(r != 0) { fprintf(stderr, "ERROR writing to %s: %d %s\n", fNameRaw, errno, strerror(errno)); exit(1); }

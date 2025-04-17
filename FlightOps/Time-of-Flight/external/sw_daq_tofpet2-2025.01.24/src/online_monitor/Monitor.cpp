@@ -124,8 +124,10 @@ namespace PETSYS { namespace OnlineMonitor {
 			fprintf(stderr, "Could not create  /dev/shm%s\n", shmObjectPath);
 			exit(1);
 		}
-	
-		ftruncate(fd, shmSize);
+
+    if (ftruncate(fd, shmSize) == -1) {
+      perror("ftruncate failed");
+    }	
 		
 		auto p = ptr = (char *)mmap(NULL, 
 				shmSize, 
