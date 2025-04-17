@@ -44,17 +44,17 @@ source $GRAMS_TOF_LIB/Tool/config/grams_env.bash
 
 ## linked by external library
 ```bash
-find_package(BessLibrary REQUIRED)
-if (BessLibrary_FOUND)
-    message(STATUS "BessLibrary found successfully!")
+find_package(GramsLibrary REQUIRED)
+if (GramsLibrary_FOUND)
+    message(STATUS "GramsLibrary found successfully!")
 else()
-    message(WARNING "BessLibrary not found.")
+    message(WARNING "GramsLibrary not found.")
 endif()
 ...
-get_target_property(inc_dirs Bess::BessAnalysisLib INTERFACE_INCLUDE_DIRECTORIES)
-message(STATUS "BessAnalysisLib includes: ${inc_dirs}") #just check
+get_target_property(inc_dirs Grams::Tofpet2Lib INTERFACE_INCLUDE_DIRECTORIES)
+message(STATUS "Tofpet2Lib includes: ${inc_dirs}") #just check
 ...
-target_link_libraries(GalpropDataLib PUBLIC Bess::BessAnalysisLib) #header dir is automatically loaded
+target_link_libraries(GalpropDataLib PUBLIC Grams::Tofpet2Lib) #header dir is automatically loaded
 ...
 ```
 
