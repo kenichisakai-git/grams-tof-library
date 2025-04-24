@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# In some systems ROOT's python bindings are installed to /usr/local/lib which isn't in PYTHONPATH
+import sys
+sys.path.append("/usr/local/lib")
+
+from copy import deepcopy
+import argparse
+from time import sleep
+import ROOT
+from sys import stdout, argv
+from math import sqrt
+import random
+import re
+
+# Create the S-Curve function
+fSigmoid = ROOT.TF1("fSigmoid","[0]*ROOT::Math::normal_cdf(x,[1],[2])",0,64);
+fSigmoid.SetParName(0, "C")
+fSigmoid.SetParName(1, "#sigma")
+fSigmoid.SetParName(2, "x0")
+fSigmoid.SetNpx(64)
+
+def normalizeAndSplit(l):
+	l = re.sub("\s*#.*", "", l)	# Remove comments
+	l = re.sub('^\s*', '', l)	# Remove leading white space
+	l = re.sub('\s*$', '', l)	# Remove trailing whitespace
+	l = re.sub('\s+', '\t', l)	# Normalize whitespace to tabs
+	l = re.sub('\r', '', l)		# Remove \r
+	l = re.sub('\n', '', l)		# Remove \l
+	l = l.split('\t')
+	return l
+
+def getBaselineAndNoise(profile):
+	low = profile.GetBinCenter(profile.FindFirstBinAbove(0.1)) - 0.5
+	high = profile.GetBinCenter(profile.FindFirstBinAbove(0.9)) + 0.5
+
+	fSigmoid.FixParameter(0, 1.0);
+
+	fSigmoid.SetParameter(1, high-low);
+	fSigmoid.SetParLimits(1, 0.05, high-low)
+
+	fSigmoid.SetParameter(2, (low+high)/2.0)
+	fSigmoid.SetParLimits(2, low, high)
+
+	profile.Fit("fSigmoid", "", "", 0, 64)
+	f = profile.GetFunction("fSigmoid")
+
+	if f:
+			zero= f.GetParameter(2)
+			noise = f.GetParameter(1)
+	else:
+		print("WARNING: No fit for %s" % profile.GetName())
+		zero = (low+high)/2.0
+		noise = 0.05
+
+	return zero, noise
+
+def getThresholdForRate(profile, rate):
+	threshold = profile.FindFirstBinAbove(rate) - profile.FindBin(0)
+	if threshold > 63:
+		return 63
+	elif threshold < 0:
+		return 63
+	else:
+		return threshold
+
+def getDarkWidth(profile, baseline):
+	maxBin = profile.GetMaximumBin()
+	while profile.GetBinCenter(maxBin) > baseline:
+		maxBin -= 1
+
+	rate1pe = profile.GetBinContent(maxBin)
+	t1 = profile.GetBinCenter(profile.FindFirstBinAbove(0.5 * rate1pe))
+	return baseline - t1
+
+def main(argv):
+
+	parser = argparse.ArgumentParser(description='Process threshold calibration data')
+	parser.add_argument("--config", type=str, required=True, help="Configuration file")
+	parser.add_argument("-i", type=str, dest="inputFilePrefix", required=True, help="Data file prefix")
+	parser.add_argument("-o", type=str, dest="outFileName", required=True, help="Output table file name")
+	parser.add_argument("--root-file", dest="rootFileName", help="Output ROOT file name")
+	args = parser.parse_args()
+
+
+	rootFile = None
+	if args.rootFileName:
+		rootFile = ROOT.TFile(args.rootFileName, "RECREATE")
+
+
+	baselineSettings = {}
+	activeChannels = set()
+	activeChips = set()
+	inputFile = open(args.inputFilePrefix + "_baseline.tsv")
+	for line in inputFile:
+		line = normalizeAndSplit(line)
+		if line == ['']: continue
+		portID, slaveID, chipID, channelID, baseline_T, baseline_E = [ int(v) for v in line ]
+		baselineSettings[(portID, slaveID, chipID, channelID)] = (baseline_T, baseline_E)
+		activeChannels.add((portID, slaveID, chipID, channelID))
+		activeChips.add((portID, slaveID, chipID))
+	inputFile.close()
+
+	activeChannels = [ x for x in activeChannels ] # Convert to list
+	activeChannels.sort() # and sort the list
+
+	activeChips = [ x for x in activeChips ] # Convert to list
+	activeChips.sort() # and sort the list
+
+	print(activeChips)
+
+	noiseProfiles = {}
+	for portID, slaveID, chipID, channelID in activeChannels:
+		for thresholdName in ["vth_t1", "vth_t2", "vth_e"]:
+			hName = "hNoise_%02d_%02d_%02d_%02d_%s" % (portID, slaveID, chipID, channelID, thresholdName)
+			hTitle = "Noise (%02d %02d %02d %02d) %s" % (portID, slaveID, chipID, channelID, thresholdName)
+			noiseProfiles[(portID, slaveID, chipID, channelID, thresholdName)] = ROOT.TProfile(hName, hTitle, 64, 0, 64)
+
+	inputFile = open(args.inputFilePrefix + "_noise.tsv")
+	for line in inputFile:
+		line = normalizeAndSplit(line)
+		if line == ['']: continue
+		portID, slaveID, chipID, channelID = [ int(v) for v in line[0:4] ]
+		thresholdName = line[4]
+		thresholdValue = int(line[5])
+		v = float(line[6])
+		v += (random.random() - 0.5) * 1E-6 # Apply some ditthering because ROOT fits seem to misbehave when value=error=0
+		noiseProfiles[ (portID, slaveID, chipID, channelID, thresholdName)].Fill(thresholdValue, v)
+	inputFile.close()
+
+	darkProfiles = {}
+	for portID, slaveID, chipID, channelID in activeChannels:
+		for thresholdName in ["vth_t1", "vth_t2", "vth_e"]:
+			hName = "hDark_%02d_%02d_%02d_%02d_%s" % (portID, slaveID, chipID, channelID, thresholdName)
+			hTitle = "Dark (%02d %02d %02d %02d) %s" % (portID, slaveID, chipID, channelID, thresholdName)
+			darkProfiles[(portID, slaveID, chipID, channelID, thresholdName)] = ROOT.TProfile(hName, hTitle, 64, 0, 64)
+
+	inputFile = open(args.inputFilePrefix + "_dark.tsv")
+	for line in inputFile:
+		line = normalizeAndSplit(line)
+		if line == ['']: continue
+		portID, slaveID, chipID, channelID = [ int(v) for v in line[0:4] ]
+		thresholdName = line[4]
+		thresholdValue = int(line[5])
+		v = float(line[6])
+		darkProfiles[ (portID, slaveID, chipID, channelID, thresholdName)].Fill(thresholdValue, v)
+	inputFile.close()
+
+
+		
+	outFile = open(args.outFileName, "w")
+
+	rates =  [ 10E3, 20E3, 50E3, 100E3 ]
+
+	fields = [ "portID", "slaveID", "chipID", "channelID" ]
+	fields += [ "baseline_T", "baseline_E" ]
+	fields += [ "zero_T1", "zero_T2", "zero_E" ]
+	fields += [ "noise_T1", "noise_T2", "noise_E" ]
+	
+	print(outFile.write("# " + ('\t').join(fields) + '\n'))
+	
+	
+	gbaseline_T = {} 
+	gbaseline_E = {}
+
+	gzero_T1 = {}
+	gzero_T2 = {}
+	gzero_E = {}
+
+	gnoise_T1 = {}
+	gnoise_T2 = {}
+	gnoise_E = {}
+
+	nPoints = {}
+	for portID, slaveID, chipID in activeChips:
+		gbaseline_T[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gbaseline_E[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gzero_T1[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gzero_T2[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gzero_E[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gnoise_T1[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gnoise_T2[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		gnoise_E[(portID, slaveID, chipID)] = ROOT.TGraph(64)
+		nPoints[(portID, slaveID, chipID)] = 0
+	
+
+
+	for portID, slaveID, chipID, channelID in activeChannels:
+
+		baseline_T, baseline_E = baselineSettings[(portID, slaveID, chipID, channelID)] 
+		print("**** A", (portID, slaveID, chipID), gbaseline_T[(portID, slaveID, chipID)])
+		print("**** B", nPoints[(portID, slaveID, chipID)])
+		gbaseline_T[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, baseline_T)
+		gbaseline_E[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, baseline_E)
+		
+		zero_T1, noise_T1 = getBaselineAndNoise(noiseProfiles[(portID, slaveID, chipID, channelID, "vth_t1")])
+		zero_T2, noise_T2 = getBaselineAndNoise(noiseProfiles[(portID, slaveID, chipID, channelID, "vth_t2")])
+
+		# WARNING: Scan is not working well for vth_E
+		zero_E, noise_E = getBaselineAndNoise(noiseProfiles[(portID, slaveID, chipID, channelID, "vth_e")])
+		
+		gzero_T1[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, zero_T1)
+		gzero_T2[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, zero_T2)
+		gzero_E[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, zero_E)
+
+		gnoise_T1[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, noise_T1)
+		gnoise_T2[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, noise_T2)
+		gnoise_E[(portID, slaveID, chipID)].SetPoint(nPoints[(portID, slaveID, chipID)],channelID, noise_E)
+
+		nPoints[(portID, slaveID, chipID)] += 1
+
+		fields = [ str(v) for v in [portID, slaveID, chipID, channelID] ]
+		fields += [ str(v) for v in [baseline_T, baseline_E] ]
+		fields += [ str(v) for v in [zero_T1, zero_T2,  zero_E] ]
+		fields += [ str(v) for v in [noise_T1, noise_T2,  noise_E] ]
+		outFile.write(("\t").join(fields) + "\n")
+
+
+	for portID, slaveID, chipID in activeChips:
+		gbaseline_T[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gbaseline_E[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gzero_T1[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gzero_T2[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gzero_E[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gnoise_T1[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gnoise_T2[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+		gnoise_E[(portID, slaveID, chipID)].Set(nPoints[(portID, slaveID, chipID)])
+	
+	for portID, slaveID, chipID in activeChips:
+		c1 = ROOT.TCanvas()
+		multi1 = ROOT.TMultiGraph()
+		multi2 = ROOT.TMultiGraph()
+		multi3 = ROOT.TMultiGraph()
+		c1.Divide(2,2)
+
+
+		c1.cd(1)
+		gbaseline_T[(portID, slaveID, chipID)].SetMarkerColor(1)
+		gbaseline_T[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gbaseline_T[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+
+		gbaseline_E[(portID, slaveID, chipID)].SetMarkerColor(2)
+		gbaseline_E[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gbaseline_E[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+		multi1.SetMaximum(64)
+		multi1.SetMinimum(0)
+		multi1.SetTitle("Baseline")
+		multi1.Add(gbaseline_T[(portID, slaveID, chipID)])
+		multi1.Add(gbaseline_E[(portID, slaveID, chipID)])
+		multi1.Draw("AP")
+		multi1.GetXaxis().SetTitle("Channel")
+		multi1.GetYaxis().SetTitle("DAC Units")
+
+		leg1 = ROOT.TLegend(0.75,0.45,0.89,0.55)
+		leg1.AddEntry(gbaseline_T[(portID, slaveID, chipID)],"t1 and t2","p");
+		leg1.AddEntry(gbaseline_E[(portID, slaveID, chipID)],"E","p");
+		leg1.Draw()
+
+		c1.cd(2)
+		gzero_T1[(portID, slaveID, chipID)].SetMarkerColor(1)
+		gzero_T1[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gzero_T1[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+		gzero_T2[(portID, slaveID, chipID)].SetMarkerColor(4)
+		gzero_T2[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gzero_T2[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+		gzero_E[(portID, slaveID, chipID)].SetMarkerColor(2)
+		gzero_E[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gzero_E[(portID, slaveID, chipID)].SetMarkerStyle(2)
+			
+
+
+		multi2.Add(gzero_T1[(portID, slaveID, chipID)])
+		multi2.Add(gzero_T2[(portID, slaveID, chipID)])
+		multi2.Add(gzero_E[(portID, slaveID, chipID)])
+		multi2.SetMaximum(64)
+		multi2.SetMinimum(0)
+		multi2.SetTitle("Zero")
+
+		multi2.Draw("AP")
+		multi2.GetXaxis().SetTitle("Channel")
+		multi2.GetYaxis().SetTitle("DAC Units")
+
+		leg2 = ROOT.TLegend(0.75,0.425,0.89,0.575)
+		leg2.AddEntry(gzero_T1[(portID, slaveID, chipID)],"t1","p");
+		leg2.AddEntry(gzero_T2[(portID, slaveID, chipID)],"t2","p");
+		leg2.AddEntry(gzero_E[(portID, slaveID, chipID)],"E","p");
+		leg2.Draw()
+
+		c1.cd(3)
+		gnoise_T1[(portID, slaveID, chipID)].SetMarkerColor(1)
+		gnoise_T1[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gnoise_T1[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+		gnoise_T2[(portID, slaveID, chipID)].SetMarkerColor(4)
+		gnoise_T2[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gnoise_T2[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+		gnoise_E[(portID, slaveID, chipID)].SetMarkerColor(2)
+		gnoise_E[(portID, slaveID, chipID)].SetMarkerSize(0.6)
+		gnoise_E[(portID, slaveID, chipID)].SetMarkerStyle(2)
+
+		multi3.Add(gnoise_T1[(portID, slaveID, chipID)])
+		multi3.Add(gnoise_T2[(portID, slaveID, chipID)])
+		multi3.Add(gnoise_E[(portID, slaveID, chipID)])
+		multi3.SetMaximum(4)
+		multi3.SetMinimum(0)
+		multi3.SetTitle("Noise")
+		multi3.Draw("AP")
+		multi3.GetYaxis().SetTitle("DAC Units")
+		multi3.GetXaxis().SetTitle("Channel")
+
+		leg3 = ROOT.TLegend(0.75,0.74,0.89,0.89)
+		leg3.AddEntry(gnoise_T1[(portID, slaveID, chipID)],"t1","p");
+		leg3.AddEntry(gnoise_T2[(portID, slaveID, chipID)],"t2","p");
+		leg3.AddEntry(gnoise_E[(portID, slaveID, chipID)],"E","p");
+		leg3.Draw()
+
+		plotName = "%s_%02d_%02d_%02d.svg" % (args.inputFilePrefix, portID, slaveID, chipID)
+		c1.SaveAs(plotName)
+
+
+
+
+	if rootFile is not None:
+		rootFile.Write()
+		rootFile.Close()
+
+		
+	
+
+if __name__ == "__main__":
+	main(argv)

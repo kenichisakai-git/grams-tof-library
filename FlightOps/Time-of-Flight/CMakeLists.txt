@@ -4,4 +4,4 @@ message("${BMagenta}[============ Entering Time-of-Flight Subdirectory =========
 file(GLOB SOURCES "src/*.cc")
 file(GLOB HEADERS "include/*.h")
 
-add_subdirectory(external/sw_daq_tofpet2-2025.01.24)
+add_subdirectory(external/sw_daq_tofpet2-2023.12.06)
