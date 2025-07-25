@@ -1,0 +1,1 @@
+/usr/bin/c++   -pipe -fsigned-char -pthread -DLINUX -O2 -g -DNDEBUG CMakeFiles/daqd.exe.dir/tools/daqd.cpp.o -o ../../../bin/daqd.exe   -L/home/ksakai/software/root_v6.32.12/lib  -Wl,-rpath,/home/ksakai/software/root_v6.32.12/lib:/home/ksakai/work/source/grams-tof-library/00build/lib: ../../../lib/libGramsTofDaqdLib.so -lrt
