@@ -1,0 +1,373 @@
+./boot.py:class LegacyWrapper:
+./boot.py:	def __init__(self, conn):
+./boot.py:	def read_config_register(self, portID, slaveID, word_width, base_address):
+./boot.py:	def write_config_register(self, portID, slaveID, word_width, base_address, value):
+./boot.py:	def spi_master_execute(self, portID, slaveID, chipID, cycle_length, sclk_en_on, sclk_en_off, cs_on, cs_off, mosi_on, mosi_off, miso_on, miso_off, mosi_data, freq_sel=1, miso_edge="rising", mosi_edge="rising"):
+./boot.py:def make_image_header():
+./boot.py:def check_image(conn, portID, slaveID, chipID, addr):
+./boot.py:def get_active_image_addr(conn, portID, slaveID, chipID):
+./boot.py:def make_boot_sector(boot_addr):
+./fe_power.py:class PowerGoodError(Exception): 
+./fe_power.py:    def __init__(self, portID, slaveID):
+./fe_power.py:def get_bias_power_status(conn, portID, slaveID):
+./fe_power.py:def set_bias_power(conn, portID, slaveID, power):
+./fe_power.py:def chk_power_good_original(conn, portID, slaveID):
+./fe_power.py:def set_fem_power_original(conn, portID, slaveID, power):
+./fe_power.py:def get_fem_power_status(conn, portID, slaveID):
+./fe_power.py:def set_fem_power(conn, portID, slaveID, power):
+./daqd.py:class Connection:
+./daqd.py:	def __init__(self):
+./daqd.py:	def __getSharedMemoryInfo(self):
+./daqd.py:	def getSystemFrequency(self):
+./daqd.py:	def getActivePorts(self):
+./daqd.py:	def __getActivePorts(self):
+./daqd.py:	def getDAQTemp(self):
+./daqd.py:	def getActiveUnits(self):
+./daqd.py:	def getTriggerUnit(self):
+./daqd.py:	def getActiveFEBDs(self):
+./daqd.py:	def getUnitInfo(self, portID, slaveID):
+./daqd.py:	def __scanUnits_ll(self):
+./daqd.py:	def getActiveAsics(self):
+./daqd.py:	def getAsicSubtype(self, portID, slaveID, chipID):
+./daqd.py:	def getActiveAsicsChannels(self):
+./daqd.py:	def getActiveBiasSlots(self):
+./daqd.py:	def getBiasSlotInfo(self, portID, slaveID, slotID):
+./daqd.py:	def getActiveBiasChannels(self):
+./daqd.py:	def setTestPulseNone(self):
+./daqd.py:	def setTestPulsePLL(self, length, interval, finePhase, invert=False):
+./daqd.py:	def set_test_pulse_febds(self, length, interval, finePhase, invert=False):
+./daqd.py:	def set_test_pulse_tgr(self, length, interval, finePhase, invert=False):
+./daqd.py:	def __set_test_pulse(self, targets, length, interval, finePhase, invert=False):
+./daqd.py:	def __setSorterMode(self, mode):
+./daqd.py:	def disableEventGate(self):
+./daqd.py:	def enableEventGate(self, delay):
+./daqd.py:	def __daqdGateMode(self, mode):
+./daqd.py:	def disableCoincidenceTrigger(self):
+./daqd.py:	def disableAuxIO(self):
+./daqd.py:	def setAuxIO(self, which, mode):
+./daqd.py:	def set_legacy_fem_mode(self, portID, slaveID):
+./daqd.py:	def initializeSystem(self, maxTries = 5, skipFEM = False, power_lst = []):
+./daqd.py:	def __setAcquisitionMode(self, mode):
+./daqd.py:	def stopAcquisition(self):
+./daqd.py:	def __getAsicLinkConfiguration(self, portID, slaveID):
+./daqd.py:	def read_mem_ctrl(self, portID, slaveID, ctrl_id, word_width, base_address, n_words):
+./daqd.py:	def write_mem_ctrl(self, portID, slaveID, ctrl_id, word_width, base_address, data):
+./daqd.py:	def read_config_register(self, portID, slaveID, word_width, base_address):
+./daqd.py:	def write_config_register(self, portID, slaveID, word_width, base_address, value):
+./daqd.py:	def write_config_register_tgr(self, word_width, base_address, value):
+./daqd.py:	def write_config_register_febds(self,  word_width, base_address, value):
+./daqd.py:	def spi_master_execute(self, portID, slaveID, chipID, cycle_length, sclk_en_on, sclk_en_off, cs_on, cs_off, mosi_on, mosi_off, miso_on, miso_off, mosi_data, freq_sel=1, miso_edge="rising", mosi_edge="rising"):
+./daqd.py:	def i2c_master(self, portID, slaveID, busID, s):
+./daqd.py:	def sendCommand(self, portID, slaveID, cfgFunctionID, payload, maxTries=10):
+./daqd.py:	def __doAsicCommand(self, portID, slaveID, chipID, command, value=None, channel=None):
+./daqd.py:	def ___doAsicCommand(self, portID, slaveID, chipID, spi_id, command, value=None, channel=None):
+./daqd.py:	def getAsicsConfig(self, forceAccess=False):
+./daqd.py:	def setAsicsConfig(self, config, forceAccess=False):
+./daqd.py:	def __write_hv_channel(self, portID, slaveID, slotID, channelID, value, forceAccess=False):
+./daqd.py:	def get_hvdac_config(self):
+./daqd.py:	def set_hvdac_config(self, config, forceAccess=False):
+./daqd.py:	def openRawAcquisition(self, fileNamePrefix, calMode = False):
+./daqd.py:	def openRawAcquisitionWithMonitor(self, fileNamePrefix, monitor_config, monitor_toc, monitor_exec="./online_monitor"):
+./daqd.py:	def __openRawAcquisition(self, fileNamePrefix, calMode, monitor_config, monitor_toc, monitor_exec):
+./daqd.py:	def closeAcquisition(self):
+./daqd.py:	def acquire(self, acquisitionTime, step1, step2):
+./daqd.py:	def acquireAsBytes(self, acquisitionTime):
+./daqd.py:	def checkAsicRx(self):
+./daqd.py:	def __getDataFrameWriteReadPointer(self):
+./daqd.py:	def __setDataFrameReadPointer(self, rdPointer):
+./daqd.py:	def __getDecodedDataFrame(self, nonEmpty=False):
+./daqd.py:	def __synchronizeDataToConfig(self, clearFrames=True):
+./daqd.py:	def getCurrentTimeTag(self):
+./daqd.py:	def getAcquisitionStartTime(self):
+./daqd.py:	def getPortCounts(self, port):
+./daqd.py:	def getFEBDCount1(self, portID, slaveID):
+./daqd.py:class CommandErrorTimeout(Exception):
+./daqd.py:	def __init__(self, portID, slaveID):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorInvalidLinks(Exception):
+./daqd.py:	def __init__(self, portID, slaveID, value):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorInvalidAsicType(Exception): 
+./daqd.py:	def __init__(self, portID, slaveID, value):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorNoFEB(Exception):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorUnitNotPresent(Exception):
+./daqd.py:	def __init__(self, portID, slaveID):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorFEBDNotPresent(Exception):
+./daqd.py:	def __init__(self, portID, slaveID):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorAsicPresenceInconsistent(Exception):
+./daqd.py:	def __init__(self, lst):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorAsicPresenceChanged(Exception):
+./daqd.py:	def __init__(self, portID, slaveID, asicID):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorAsicUnknownConfigurationAfterReset(Exception):
+./daqd.py:	def __init__(self, portID, slaveID, chipID, value):
+./daqd.py:	def __str__(self):
+./daqd.py:class TMP104CommunicationError(Exception):
+./daqd.py:	def __init__(self, portID, slaveID, din, dout):
+./daqd.py:	def __str__(self):
+./daqd.py:class ClockNotOK(Exception):
+./daqd.py:	def __init__(self, portID, slaveID):
+./daqd.py:	def __str__(self):
+./daqd.py:class UnknownAuxIO(Exception):
+./daqd.py:	def __init__(self, which):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorAsicLinkDown(Exception):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorUnknownProtocol(Exception):
+./daqd.py:	def __init__(self, port, slave, protocol):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorTooManyTriggerUnits(Exception):
+./daqd.py:	def __init__(self, trigger_list):
+./daqd.py:	def __str__(self):
+./daqd.py:class ErrorAcquisitionStopped(Exception):
+./fe_power_8k.py:class PowerGoodError(Exception): 
+./fe_power_8k.py:    def __init__(self, portID, slaveID):
+./fe_power_8k.py:class RSenseReadError(Exception):
+./fe_power_8k.py:    def __init__(self, portID, slaveID, busID, adcID):
+./fe_power_8k.py:class DACMaximumReached(Exception):
+./fe_power_8k.py:    def __init__(self, portID, slaveID, busID, rail, status):
+./fe_power_8k.py:def read_power_good(conn, portID, slaveID):
+./fe_power_8k.py:def chk_power_good(conn, portID, slaveID, busID):
+./fe_power_8k.py:def get_module_version(conn, portID, slaveID, busID):
+./fe_power_8k.py:def read_sense(conn, portID, slaveID, busID, debug = False, gnd_max_filter = 0.1):
+./fe_power_8k.py:def read_dac_ti(conn, portID, slaveID, busID, rail):
+./fe_power_8k.py:def set_dac_ti(conn, portID, slaveID, busID, rail, setting):
+./fe_power_8k.py:def read_dac_murata(conn, portID, slaveID, busID, rail):
+./fe_power_8k.py:def set_dac_murata(conn, portID, slaveID, busID, rail, setting):
+./fe_power_8k.py:def int_to_dac(value):
+./fe_power_8k.py:def read_dac(conn, portID, slaveID, busID, moduleVersion, rail):
+./fe_power_8k.py:def set_dac(conn, portID, slaveID, busID, moduleVersion, rail, setting):
+./fe_power_8k.py:def set_all_dacs(conn, portID, slaveID, busID, moduleVersion, vdd1, vdd2, vdd3):
+./fe_power_8k.py:def ramp_up_rail(conn, portID, slaveID, busID, moduleVerison, rail, range_to_iterate, max, target):
+./fe_power_8k.py:def detect_active_bus(conn, portID, slaveID, testID_lst = [1,2,3,4]):
+./fe_power_8k.py:def set_fem_power(conn, portID, slaveID, power):
+./fe_eeprom.py:class m95080_eeprom:
+./fe_eeprom.py:    def __init__(self, conn, portID, slaveID, moduleID):
+./fe_eeprom.py:    def write(self, adr, data):
+./fe_eeprom.py:    def read(self, adr, n_bytes):
+./fe_eeprom.py:    def read_entry(self, entry):
+./fe_eeprom.py:    def erase(self):
+./fe_eeprom.py:    def max10_erase(self):
+./fe_eeprom.py:    def rdsr(self): #Read Status Register
+./fe_eeprom.py:    def wren(self): #Write Enable
+./fe_eeprom.py:    def wrdi(self): #Write Disable
+./fe_eeprom.py:    def detect(self): 
+./fe_eeprom.py:    def is_programmed(self):
+./fe_eeprom.py:    def read_sn(self):
+./fe_eeprom.py:    def read_fem_type(self):
+./fe_eeprom.py:    def verify_checksum(self):
+./fe_eeprom.py:def verify_checksum_m95080(conn, portID, slaveID, moduleID):
+./fe_eeprom.py:def program_m95080(conn,fem_type,new_sn_lst=None,new_s_cfg_lst=None):
+./bitarray_utils.py:def intToBin(v, n, reverse=False):
+./bitarray_utils.py:def binToInt(s, reverse=False):
+./bitarray_utils.py:def grayToBin(g):
+./bitarray_utils.py:def grayToInt(v):
+./i2c.py:class BusError(Exception):
+./i2c.py:	def __init__(self, portID, slaveID, busID):
+./i2c.py:	def __str__(self):
+./i2c.py:class NoAck(Exception):
+./i2c.py:	def __init__(self, portID, slaveID, busID):
+./i2c.py:	def __str__(self):
+./i2c.py:def ds44xx_set_register(conn, portID, slaveID, busID, chipID, regID, value, debug_error=False):
+./i2c.py:def ds44xx_read_register(conn, portID, slaveID, busID, chipID, regID, debug_error=False):
+./i2c.py:def PI4MSD5V9540B_set_register(conn, portID, slaveID, busID, chipID, value, debug_error=False):
+./info.py:def is_febd(d):
+./info.py:def is_trigger(d):
+./info.py:def allows_legacy_module(d):
+./info.py:def fem_per_febd(d):
+./info.py:def asic_per_module(d):
+./info.py:def bias_slots(d):
+./config.py:def replace_variables(entry, cdir):
+./config.py:def ConfigFromFile(configFileName, loadMask=LOAD_ALL):
+./config.py:class Config:
+./config.py:	def __init__(self):
+./config.py:	def loadToHardware(self, daqd, bias_enable=APPLY_BIAS_OFF, hw_trigger_enable=False, qdc_mode = "qdc"):
+./config.py:	def getCalibratedBiasChannels(self):
+./config.py:	def getBiasChannelDefaultSettings(self, key):
+./config.py:	def mapBiasChannelVoltageToDAC(self, key, voltage):
+./config.py:	def getCalibratedDiscChannels(self):
+./config.py:	def getAsicChannelDefaultBaselineSettings(self, key):
+./config.py:	def getAsicChannelDefaultThresholds(self, key):
+./config.py:	def getAsicChannelQDCMode(self, key):
+./config.py:	def mapAsicChannelThresholdToDAC(self, key, vth_str, value):
+./config.py:def toInt(s):
+./config.py:def parseAsicParameters(configParser):
+./config.py:def normalizeAndSplit(l):
+./config.py:def readBiasCalibrationTable_tripplet_list(fn):
+./config.py:def readBiasCalibrationTable_table(fn):
+./config.py:def readSiPMBiasTable(fn):
+./config.py:def readDiscCalibrationsTable(fn):
+./config.py:def readDiscSettingsTable(fn):
+./config.py:def readQDCModeTable(fn):
+./config.py:def readTriggerMap(fn):
+./config.py:def readTopologyMap(fn):
+./tofpet2c.py:def nrange(start, end):
+./tofpet2c.py:class AsicGlobalConfig(bitarray):
+./tofpet2c.py:	def __init__(self, initial=None, endian="big"):
+./tofpet2c.py:	def __deepcopy__(self, memo):
+./tofpet2c.py:	def setValue(self, key, value):
+./tofpet2c.py:	def setBits(self, key, value):
+./tofpet2c.py:	def getBits(self, key):
+./tofpet2c.py:	def getValue(self, key):
+./tofpet2c.py:	def printAllBits(self):
+./tofpet2c.py:	def printAllValues(self):
+./tofpet2c.py:	def getKeys(self):
+./tofpet2c.py:class AsicChannelConfig(bitarray):
+./tofpet2c.py:	def __init__(self, initial=None, endian="big"):
+./tofpet2c.py:	def __deepcopy__(self, memo):
+./tofpet2c.py:	def setValue(self, key, value):
+./tofpet2c.py:	def setBits(self, key, value):
+./tofpet2c.py:	def getBits(self, key):
+./tofpet2c.py:	def getValue(self, key):
+./tofpet2c.py:	def printAllBits(self):
+./tofpet2c.py:	def printAllValues(self):
+./tofpet2c.py:	def setBaseline(self, v):
+./tofpet2c.py:	def getBaseline(self):
+./tofpet2c.py:	def getKeys(self):
+./tofpet2c.py:class AsicConfig:
+./tofpet2c.py:	def __init__(self):
+./tofpet2c.py:class ConfigurationError(BaseException):
+./tofpet2c.py:class ConfigurationErrorBadAck(ConfigurationError):
+./tofpet2c.py:	def __init__(self, portID, slaveID, asicID, value):
+./tofpet2c.py:	def __str__(self):
+./tofpet2c.py:class ConfigurationErrorBadCRC(ConfigurationError):
+./tofpet2c.py:	def __init__(self, portID, slaveID, asicID):
+./tofpet2c.py:	def __str__(self):
+./tofpet2c.py:class ConfigurationErrorStuckHigh(ConfigurationError):
+./tofpet2c.py:	def __init__(self, portID, slaveID, asicID):
+./tofpet2c.py:	def __str__(self):
+./tofpet2c.py:class ConfigurationErrorGeneric(ConfigurationError):
+./tofpet2c.py:	def __init__(self, portID, slaveID, asicID, value):
+./tofpet2c.py:	def __str__(self):
+./tofpet2c.py:class ConfigurationErrorBadRead(ConfigurationError):
+./tofpet2c.py:	def __init__(self, portID, slaveID, asicID, written, read):
+./tofpet2c.py:	def __str__(self):
+./tofpet2c.py:class ConfigurationErrorBadReply(ConfigurationError):
+./tofpet2c.py:	def __init__(self, expected, actual):
+./tofpet2c.py:	def __str__(self):
+./bias.py:def get_bias_interface(conn, portID, slaveID, slotID):
+./bias.py:def has_prom(conn, portID, slaveID, slotID):
+./bias.py:def read_bias_slot_info(conn, portID, slaveID, slotID, allowUnknown=False):
+./bias.py:def get_str(conn, portID, slaveID, slotID): # !Should just receive a BIAS NAME, this is a formatter/error handler. Requires changes in GUI (get_str())
+./bias.py:def set_ag7200_dcdc(conn, portID, slaveID, slotID, dacID, value):
+./bias.py:def set_channel(conn, portID, slaveID, slotID, channelID , value):
+./bias.py:def get_number_channels(bias_name):
+./bias.py:class BiasException(Exception): pass
+./bias.py:class BadBiasMagic(BiasException): pass
+./bias.py:class UnknownBiasType(BiasException): pass
+./tofpet2b.py:def nrange(start, end):
+./tofpet2b.py:class AsicGlobalConfig(bitarray):
+./tofpet2b.py:	def __init__(self, initial=None, endian="big"):
+./tofpet2b.py:	def __deepcopy__(self, memo):
+./tofpet2b.py:	def setValue(self, key, value):
+./tofpet2b.py:	def setBits(self, key, value):
+./tofpet2b.py:	def getBits(self, key):
+./tofpet2b.py:	def getValue(self, key):
+./tofpet2b.py:	def printAllBits(self):
+./tofpet2b.py:	def printAllValues(self):
+./tofpet2b.py:	def getKeys(self):
+./tofpet2b.py:class AsicChannelConfig(bitarray):
+./tofpet2b.py:	def __init__(self, initial=None, endian="big"):
+./tofpet2b.py:	def __deepcopy__(self, memo):
+./tofpet2b.py:	def setValue(self, key, value):
+./tofpet2b.py:	def setBits(self, key, value):
+./tofpet2b.py:	def getBits(self, key):
+./tofpet2b.py:	def getValue(self, key):
+./tofpet2b.py:	def printAllBits(self):
+./tofpet2b.py:	def printAllValues(self):
+./tofpet2b.py:	def setBaseline(self, v):
+./tofpet2b.py:	def getBaseline(self):
+./tofpet2b.py:	def getKeys(self):
+./tofpet2b.py:class AsicConfig:
+./tofpet2b.py:	def __init__(self):
+./tofpet2b.py:class ConfigurationError(BaseException):
+./tofpet2b.py:class ConfigurationErrorBadAck(ConfigurationError):
+./tofpet2b.py:	def __init__(self, portID, slaveID, asicID, value):
+./tofpet2b.py:	def __str__(self):
+./tofpet2b.py:class ConfigurationErrorBadCRC(ConfigurationError):
+./tofpet2b.py:	def __init__(self, portID, slaveID, asicID):
+./tofpet2b.py:	def __str__(self):
+./tofpet2b.py:class ConfigurationErrorStuckHigh(ConfigurationError):
+./tofpet2b.py:	def __init__(self, portID, slaveID, asicID):
+./tofpet2b.py:	def __str__(self):
+./tofpet2b.py:class ConfigurationErrorGeneric(ConfigurationError):
+./tofpet2b.py:	def __init__(self, portID, slaveID, asicID, value):
+./tofpet2b.py:	def __str__(self):
+./tofpet2b.py:class ConfigurationErrorBadRead(ConfigurationError):
+./tofpet2b.py:	def __init__(self, portID, slaveID, asicID, written, read):
+./tofpet2b.py:	def __str__(self):
+./tofpet2b.py:class ConfigurationErrorBadReply(ConfigurationError):
+./tofpet2b.py:	def __init__(self, expected, actual):
+./tofpet2b.py:	def __str__(self):
+./spi.py:def spi_reg_ll(conn, portID, slaveID, chipID, data_out):
+./spi.py:def spi_reg(conn, portID, slaveID, chipID, l, data_out):
+./spi.py:class ADCException(Exception): pass
+./spi.py:class DACException(Exception): pass
+./spi.py:def ad5535_ll(conn, portID, slaveID, chipID, data):
+./spi.py:def ad5535_set_channel(conn, portID, slaveID, chipID, channelID, value):
+./spi.py:def ltc2668_ll(conn, portID, slaveID, chipID, command):
+./spi.py:def ltc2668_set_channel(conn, portID, slaveID, chipID, channelID, value):
+./spi.py:def ltc2668_set_channel_(conn, portID, slaveID, chipID, channelID, value):	
+./spi.py:def ltc2418_ll(conn, portID, slaveID, chipID, command):
+./spi.py:def ltc2418_read(conn, portID, slaveID, chipID, channel, MAX_TRIES = 10):
+./spi.py:def ltc2439_ll(conn, portID, slaveID, chipID, command):
+./spi.py:def ltc2439_read(conn, portID, slaveID, chipID, channel, MAX_TRIES = 10):
+./spi.py:def ad7194_ll(conn,  portID, slaveID, chipID, command, read_count):
+./spi.py:def ad7194_get_channel(conn, portID, slaveID, chipID, channelID):
+./spi.py:def max111xx_ll(conn, portID, slaveID, chipID, command):
+./spi.py:def max111xx_check_once(conn, portID, slaveID, chipID):
+./spi.py:def max111xx_check(conn, portID, slaveID, chipID): #! This fixes a known bug of unknown origin
+./spi.py:def max111xx_read(conn, portID, slaveID, chipID, channelID):
+./spi.py:def ltc2984_ll(conn, portID, slaveID, chipID, command, rd):
+./spi.py:def ltc2984_write(conn, portID, slaveID, chipID, addr, n, value):
+./spi.py:def ltc2984_read(conn, portID, slaveID, chipID, addr, n):
+./spi.py:def si534x_ll(conn, portID, slaveID, chipID, command):
+./spi.py:def si534x_command(conn, portID, slaveID, chipID, command):
+./spi.py:def max5136_ll(conn, portID, slaveID, chipID, command):
+./spi.py:def max5136_wrt_through(conn, portID, slaveID, chipID, channelID, value):
+./spi.py:class EEPROM_Exception(Exception):
+./spi.py:class EEPROM_Timeout(EEPROM_Exception):
+./spi.py:class EEPROM_EraseError(EEPROM_Exception):
+./spi.py:class EEPROM_WriteError(EEPROM_Exception):
+./spi.py:def m95080_ll(conn, portID, slaveID, spiID, command, read_count):
+./spi.py:def m95080_wip(conn, portID, slaveID, spiID, MAX_TRIES = 5):
+./spi.py:def m95080_read(conn, portID, slaveID, spiID, address, n_bytes):
+./spi.py:def m95080_write(conn, portID, slaveID, spiID, address, data):
+./spi.py:def m95256_ll(conn, portID, slaveID, chipID, command, read_count):
+./spi.py:def m95256_read(conn, portID, slaveID, chipID, address, n_bytes):
+./spi.py:def m95256_write(conn, portID, slaveID, chipID, address, data):
+./spi.py:def generic_nand_flash_ll(conn, portID, slaveID, chipID, command, read_count):
+./spi.py:def generic_nand_flash_getid(conn, portID, slaveID, chipID):
+./spi.py:def generic_nand_flash_read(conn, portID, slaveID, chipID, offset, count):
+./spi.py:def generic_nand_flash_wait_write(conn, portID, slaveID, chipID, timeout=1):
+./spi.py:def n25q128a_bulk_erase(conn, portID, slaveID, chipID):
+./spi.py:def n25q128a_64k_erase(conn, portID, slaveID, chipID, sectorOffset, sectorCount):
+./spi.py:def n25q128a_write(conn, portID, slaveID, chipID, offset, data):
+./spi.py:def mx25l12835f_bulk_erase(conn, portID, slaveID, chipID):
+./spi.py:def mx25l12835f_64k_erase(conn, portID, slaveID, chipID, sectorOffset, sectorCount):
+./spi.py:def mx25l12835f_write(conn, portID, slaveID, chipID, offset, data):
+./fe_temperature.py:def lmt87(v):
+./fe_temperature.py:def lmt86(v):
+./fe_temperature.py:def lmt87(v):
+./fe_temperature.py:def lmt85(v):
+./fe_temperature.py:def lmt70(v):
+./fe_temperature.py:def get_max111xx_spiID(module_id):
+./fe_temperature.py:class UnknownTemperatureSensorType(Exception):
+./fe_temperature.py:class UnknownModuleType(Exception):
+./fe_temperature.py:class TMP104CommunicationError(Exception):
+./fe_temperature.py:    def __init__(self, portID, slaveID, din, dout):
+./fe_temperature.py:class max111xx_sensor:
+./fe_temperature.py:    def __init__(self, conn, portID, slaveID, spi_id, channel_id, location, chip_type):
+./fe_temperature.py:    def get_location(self):
+./fe_temperature.py:    def get_temperature(self):
+./fe_temperature.py:def fe_temp_enumerate_tmp104(self, portID, slaveID):
+./fe_temperature.py:def fe_temp_read_tmp104(self, portID, slaveID, nSensors):
+./fe_temperature.py:def list_fem128(conn, portID, slaveID, module_id):
+./fe_temperature.py:def list_fem256(conn, portID, slaveID, module_id):
+./fe_temperature.py:def list_from_eeprom(conn, portID, slaveID, module_id):
+./fe_temperature.py:def get_sensor_list(conn,debug=False):

@@ -14,13 +14,9 @@ PYBIND11_EMBEDDED_MODULE(grams_tof, m) {
              pybind11::arg("shmName"),
              pybind11::arg("debugLevel"),
              pybind11::arg("daqType"),
-             pybind11::arg("daqCards"))
-        .def("startAcquisition", &GRAMS_TOF_DAQManager::startAcquisition)
-        .def("stopAcquisition", &GRAMS_TOF_DAQManager::stopAcquisition)
-        .def("setBias", &GRAMS_TOF_DAQManager::setBias);
+             pybind11::arg("daqCards"));
 }
 
-// **** BEGIN UNNAMED NAMESPACE IMPL ****
 namespace {
 
 class PythonIntegrationImpl {
@@ -68,18 +64,63 @@ public:
         }
     }
 
-    // Helper: Map command ("RUN1") to script function ("user_script1")
-    bool runUserScriptByCommand(const std::string& cmd) {
-        std::string func;
-        if      (cmd == "RUN1") func = "user_script1";
-        else if (cmd == "RUN2") func = "user_script2";
-        else if (cmd == "RUN3") func = "user_script3";  // Add more as needed!
-        else {
-            std::cerr << "[PythonIntegration] Unknown command: " << cmd << std::endl;
-            return false;
+    bool runMakeBiasCalibrationTable(const std::string& scriptPath,
+                                     const std::string& outputFile,
+                                     const std::vector<int>& portIDs,
+                                     const std::vector<int>& slaveIDs,
+                                     const std::vector<int>& slotIDs,
+                                     const std::vector<std::string>& filenames) {
+        namespace py = pybind11;
+        try {
+            std::cout << "[PythonIntegration] Script module: " << scriptPath << std::endl;
+
+auto sys = py::module_::import("sys");
+std::cout << "[PythonIntegration] Python sys.path:\n";
+for (auto p : sys.attr("path")) {
+    std::cout << "  " << std::string(py::str(p)) << "\n";
+}
+
+            auto mbct = py::module_::import(scriptPath.c_str());
+            auto func = mbct.attr("make_bias_calibration_table");
+
+            py::list py_ports, py_slaves, py_slots, py_files;
+            for (auto v : portIDs) py_ports.append(v);
+            for (auto v : slaveIDs) py_slaves.append(v);
+            for (auto v : slotIDs) py_slots.append(v);
+            for (auto& f : filenames) py_files.append(f);
+
+            std::cout << "[PythonIntegration] Calling make_bias_calibration_table()\n";
+            func(outputFile, py_ports, py_slaves, py_slots, py_files);
+            return true;
+        //} catch (const std::exception& e) {
+        } catch (const py::error_already_set &e) {
+            std::cerr << "[PythonIntegration] Python exception what(): '" << e.what() << "'" << std::endl;
+
+    PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
+    PyErr_Fetch(&type, &value, &traceback);
+
+    if (type) py::handle(type).inc_ref();
+    if (value) py::handle(value).inc_ref();
+    if (traceback) py::handle(traceback).inc_ref();
+
+    try {
+        py::object traceback_mod = py::module_::import("traceback");
+
+        if (traceback && !py::reinterpret_borrow<py::object>(traceback).is_none()) {
+            py::object formatted_tb = traceback_mod.attr("format_tb")(py::reinterpret_borrow<py::object>(traceback));
+            for (auto line : formatted_tb) {
+                std::cerr << line.cast<std::string>();
+            }
         }
-        execPythonFunction(func);
-        return true;
+        if (value && !py::reinterpret_borrow<py::object>(value).is_none()) {
+            std::cerr << std::string(py::str(py::reinterpret_borrow<py::object>(value))) << std::endl;
+        }
+    } catch (...) {
+        std::cerr << "[PythonIntegration] Failed to get Python traceback." << std::endl;
+    }
+    return false;
+
+        }
     }
 
 private:
@@ -102,8 +143,14 @@ public:
     void execPythonFunction(const std::string& func_name) {
         impl_->execPythonFunction(func_name);
     }
-    bool runUserScriptByCommand(const std::string& cmd) {
-        return impl_->runUserScriptByCommand(cmd);
+
+    bool runMakeBiasCalibrationTable(const std::string& scriptModule,
+                                     const std::string& outputFile,
+                                     const std::vector<int>& portIDs,
+                                     const std::vector<int>& slaveIDs,
+                                     const std::vector<int>& slotIDs,
+                                     const std::vector<std::string>& filenames) {
+        return impl_->runMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
     }
 
 private:
@@ -124,6 +171,13 @@ void GRAMS_TOF_PythonIntegration::execPythonFunction(const std::string& func_nam
     impl_->execPythonFunction(func_name);
 }
 
-bool GRAMS_TOF_PythonIntegration::runUserScriptByCommand(const std::string& cmd) {
-    return impl_->runUserScriptByCommand(cmd);
+bool GRAMS_TOF_PythonIntegration::runMakeBiasCalibrationTable(
+    const std::string& scriptModule,
+    const std::string& outputFile,
+    const std::vector<int>& portIDs,
+    const std::vector<int>& slaveIDs,
+    const std::vector<int>& slotIDs,
+    const std::vector<std::string>& filenames) {
+    return impl_->runMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
 }
+

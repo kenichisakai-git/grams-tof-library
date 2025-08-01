@@ -32,9 +32,11 @@ install(TARGETS grams_tof_daq.exe
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
-install(DIRECTORY external/python/ DESTINATION ${CMAKE_INSTALL_PREFIX}/python)
+install(DIRECTORY external/petsys/  DESTINATION ${CMAKE_INSTALL_PREFIX}/petsys)
+install(DIRECTORY external/scripts/ DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
 
 add_subdirectory(external/kernel)
+add_subdirectory(external/rawdata)
 add_subdirectory(external/daqd)
 add_subdirectory(external/pybind11)
 
