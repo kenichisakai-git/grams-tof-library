@@ -1,6 +1,6 @@
 #include "GRAMS_TOF_DAQManager.h"
 #include "GRAMS_TOF_PythonIntegration.h"
-#include "GRAMS_TOF_CommandServer.h" // from prior message
+#include "GRAMS_TOF_CommandServer.h"
 
 int main() {
     GRAMS_TOF_DAQManager daq(
@@ -11,27 +11,38 @@ int main() {
         {"/dev/psdaq0"}       // daqCards
     );
 
-    daq.initialize();
-    daq.run();
+    if (!daq.initialize()) {
+        std::cerr << "[System] DAQ initialization failed.\n";
+        //return 1;
+    }
 
-    /*
     GRAMS_TOF_PythonIntegration pyint(daq);
-    pyint.loadPythonScript("python/sample1.py");
-    pyint.loadPythonScript("python/sample2.py");
+    pyint.loadPythonScript("scripts/make_bias_calibration_table.py"); 
 
     GRAMS_TOF_CommandServer server(
         12345,
         [&](const std::string& command) {
-            pyint.runUserScriptByCommand(command);
+            if (command == "RUN_BIAS_CAL") {
+                std::cout << "[CommandServer] Executing bias calibration script...\n";
+                pyint.runMakeBiasCalibrationTable(
+                    "scripts.make_bias_calibration_table",  // module name (not path)
+                    "/tmp/bias_output.txt",                 // output file
+                    {0}, {0}, {0},                          // portIDs, slaveIDs, slotIDs
+                    {}                                      // no calibration files
+                );
+            }
         }
     );
     server.start();
+
+    std::cout << "[System] Running DAQ and waiting for commands on port 12345.\n";
+    std::cout << "[System] Press Enter to quit.\n";
+    daq.run(); 
 
     std::cout << "[System] Waiting for commands on port 12345. Press Enter to quit.\n";
     std::cin.get();
     server.stop();
     std::cout << "[System] Exiting.\n";
-    */
 
     return 0;
 }

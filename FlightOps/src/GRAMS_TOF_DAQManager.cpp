@@ -137,7 +137,10 @@ void GRAMS_TOF_DAQManager::pollSocket() {
 
     while (!globalUserStop) {
         memset(&event, 0, sizeof(event));
+
+        sigprocmask(SIG_BLOCK, &mask, &omask);
         int nReady = epoll_pwait(epoll_fd, &event, 1, 100, &omask);
+        sigprocmask(SIG_SETMASK, &omask, NULL);
 
         if (nReady == -1) continue;
         if (event.data.fd == clientSocket_) {
@@ -168,21 +171,5 @@ void GRAMS_TOF_DAQManager::cleanup() {
         close(clientSocket_);
         unlink(socketPath_.c_str());
     }
-}
-
-bool GRAMS_TOF_DAQManager::startAcquisition() {
-    is_acq_running_ = true;
-    std::cout << "[DAQManager] Acquisition started" << std::endl;
-    return true;
-}
-
-bool GRAMS_TOF_DAQManager::stopAcquisition() {
-    is_acq_running_ = false;
-    std::cout << "[DAQManager] Acquisition stopped" << std::endl;
-    return true;
-}
-
-void GRAMS_TOF_DAQManager::setBias(int voltage) {
-    std::cout << "[DAQManager] Bias set to " << voltage << " V" << std::endl;
 }
 

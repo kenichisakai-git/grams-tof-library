@@ -14,10 +14,6 @@ public:
     bool initialize();
     bool run();  // launches poll loop
     void stop();
-    
-    bool startAcquisition();
-    bool stopAcquisition();
-    void setBias(int voltage);
 
 private:
     std::string socketPath_;

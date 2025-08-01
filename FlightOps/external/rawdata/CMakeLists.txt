@@ -1,5 +1,5 @@
-project(Grams_Tof_Daqd)
-message("${BMagenta}[============ Entering TOF Daqd Subdirectory ============]${ColReset}")
+project(Grams_Tof_RawData)
+message("${BMagenta}[============ Entering TOF RawData Subdirectory ============]${ColReset}")
 
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB HEADERS "include/*.h")
@@ -23,34 +23,39 @@ else()
   find_package(Boost REQUIRED python3 regex)
 endif()
 
-if(UNIX AND NOT APPLE)
-set( CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -DLINUX" )
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLINUX" )
-set( CMAKE_REQUIRED_DEFINITIONS -DLINUX )
-endif()
+include_directories(${PYTHON_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
+link_libraries(${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 ########################################################################################################################
-# Make a lib for all the stuff
-add_library(GramsTofDaqdLib SHARED ${SOURCES})
-target_include_directories(GramsTofDaqdLib PUBLIC
+# Build a Python module (no lib prefix)
+add_library(shm_raw_py MODULE ${SOURCES})
+set_target_properties(shm_raw_py PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME shm_raw  # final output: shm_raw.so
+)
+target_link_libraries(shm_raw_py PRIVATE rt)
+
+# C++ shared library
+add_library(GramsTofRawDataLib SHARED ${SOURCES})
+
+target_include_directories(shm_raw_py PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../kernel/include> 
     $<INSTALL_INTERFACE:include/FlightOps>
 )
-target_link_libraries(GramsTofDaqdLib PUBLIC GramsTofRawDataLib)
+target_include_directories(GramsTofRawDataLib PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/FlightOps>
+)
 
-add_executable(daqd.exe tools/daqd.cpp)
-target_link_libraries(daqd.exe PRIVATE GramsTofDaqdLib)
-target_link_libraries(daqd.exe PRIVATE rt)
+install(TARGETS shm_raw_py
+    LIBRARY DESTINATION petsys
+)
 
-install(TARGETS GramsTofDaqdLib
+install(TARGETS GramsTofRawDataLib
     EXPORT GramsTofLibraryTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
-)
-
-install(TARGETS daqd.exe
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
