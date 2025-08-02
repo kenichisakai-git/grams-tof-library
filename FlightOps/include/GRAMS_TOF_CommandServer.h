@@ -1,4 +1,5 @@
 #pragma once
+#include "GRAMS_TOF_CommandCodec.h"
 #include <functional>
 #include <string>
 #include <thread>
@@ -6,8 +7,8 @@
 
 class GRAMS_TOF_CommandServer {
 public:
-    using CommandHandler = std::function<void(const std::string&)>;
-
+    using CommandHandler = std::function<void(const GRAMS_TOF_CommandCodec::Packet&)>;
+ 
     // Starts a TCP server on the given port and sets the handler for commands.
     GRAMS_TOF_CommandServer(int port, CommandHandler handler);
 

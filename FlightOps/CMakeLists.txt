@@ -21,6 +21,10 @@ target_link_libraries(GramsTofFlightOpsLib PUBLIC rt)
 add_executable(grams_tof_daq.exe tools/grams_tof_daq.cpp)
 target_link_libraries(grams_tof_daq.exe PRIVATE GramsTofFlightOpsLib)
 
+add_executable(grams_tof_client.exe tools/grams_tof_client.cpp)
+target_link_libraries(grams_tof_client.exe PRIVATE GramsTofFlightOpsLib)
+
+
 install(TARGETS GramsTofFlightOpsLib
     EXPORT GramsTofLibraryTargets
     LIBRARY DESTINATION lib
@@ -29,6 +33,10 @@ install(TARGETS GramsTofFlightOpsLib
 )
 
 install(TARGETS grams_tof_daq.exe
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+)
+
+install(TARGETS grams_tof_client.exe
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
