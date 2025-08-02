@@ -1,5 +1,7 @@
 #include "GRAMS_TOF_CommandServer.h"
+#include "GRAMS_TOF_CommandCodec.h"
 #include <iostream>
+#include <sstream>
 #include <cstring>      // for memset
 #include <netinet/in.h> // for sockaddr_in
 #include <unistd.h>     // for close()
@@ -65,14 +67,17 @@ void GRAMS_TOF_CommandServer::run() {
 
         new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         if (new_socket < 0) continue;     // accept failed
-        
+
         char buffer[512] = {0};
-        ssize_t valread = read(new_socket, buffer, sizeof(buffer)-1);
+        ssize_t valread = read(new_socket, buffer, sizeof(buffer));
         if (valread > 0) {
-            std::string cmd(buffer, valread);
-            // Remove trailing whitespace/newline
-            cmd.erase(cmd.find_last_not_of(" \n\r\t") + 1);
-            handler_(cmd);
+            std::vector<uint8_t> data(buffer, buffer + valread);
+            GRAMS_TOF_CommandCodec::Packet pkt;
+            if (GRAMS_TOF_CommandCodec::parse(data, pkt)) {
+                handler_(pkt); 
+            } else {
+                std::cerr << "[Server] Failed to parse incoming packet.\n";
+            }
         }
         close(new_socket);
     }

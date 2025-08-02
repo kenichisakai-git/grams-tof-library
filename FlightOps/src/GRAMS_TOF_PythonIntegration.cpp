@@ -74,12 +74,6 @@ public:
         try {
             std::cout << "[PythonIntegration] Script module: " << scriptPath << std::endl;
 
-auto sys = py::module_::import("sys");
-std::cout << "[PythonIntegration] Python sys.path:\n";
-for (auto p : sys.attr("path")) {
-    std::cout << "  " << std::string(py::str(p)) << "\n";
-}
-
             auto mbct = py::module_::import(scriptPath.c_str());
             auto func = mbct.attr("make_bias_calibration_table");
 
@@ -95,31 +89,6 @@ for (auto p : sys.attr("path")) {
         //} catch (const std::exception& e) {
         } catch (const py::error_already_set &e) {
             std::cerr << "[PythonIntegration] Python exception what(): '" << e.what() << "'" << std::endl;
-
-    PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
-    PyErr_Fetch(&type, &value, &traceback);
-
-    if (type) py::handle(type).inc_ref();
-    if (value) py::handle(value).inc_ref();
-    if (traceback) py::handle(traceback).inc_ref();
-
-    try {
-        py::object traceback_mod = py::module_::import("traceback");
-
-        if (traceback && !py::reinterpret_borrow<py::object>(traceback).is_none()) {
-            py::object formatted_tb = traceback_mod.attr("format_tb")(py::reinterpret_borrow<py::object>(traceback));
-            for (auto line : formatted_tb) {
-                std::cerr << line.cast<std::string>();
-            }
-        }
-        if (value && !py::reinterpret_borrow<py::object>(value).is_none()) {
-            std::cerr << std::string(py::str(py::reinterpret_borrow<py::object>(value))) << std::endl;
-        }
-    } catch (...) {
-        std::cerr << "[PythonIntegration] Failed to get Python traceback." << std::endl;
-    }
-    return false;
-
         }
     }
 
