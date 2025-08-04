@@ -157,6 +157,6 @@ def main():
 
     make_bias_calibration_table(args.o, args.port, args.slave, args.slotID, args.filename)
 
-if __name__ == '__main__':
+if __name__ == '__main__' and not hasattr(sys, '_called_from_c'):
     main()
 

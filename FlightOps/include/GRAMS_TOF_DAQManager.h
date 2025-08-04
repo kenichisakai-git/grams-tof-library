@@ -12,8 +12,9 @@ public:
     ~GRAMS_TOF_DAQManager();
 
     bool initialize();
-    bool run();  // launches poll loop
+    bool run();
     void stop();
+    void reset();
 
 private:
     std::string socketPath_;
@@ -32,7 +33,7 @@ private:
     bool is_acq_running_;
 
     int createListeningSocket();
-    void pollSocket();  // epoll loop
+    void pollSocket();
     void cleanup();
 };
 

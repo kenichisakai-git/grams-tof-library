@@ -87,6 +87,14 @@ void GRAMS_TOF_DAQManager::stop() {
     globalUserStop = true;
 }
 
+
+void GRAMS_TOF_DAQManager::reset() {
+    stop();
+    cleanup();
+    initialize();
+    run();
+}
+
 int GRAMS_TOF_DAQManager::createListeningSocket() {
     struct sockaddr_un address;
     int socket_fd = socket(PF_UNIX, SOCK_STREAM, 0);

@@ -12,13 +12,14 @@ int main() {
         {"/dev/psdaq0"}       // daqCards
     );
 
+    /*
     if (!daq.initialize()) {
         std::cerr << "[System] DAQ initialization failed.\n";
-        //return 1;
+        return 1;
     }
+    */
 
     GRAMS_TOF_PythonIntegration pyint(daq);
-    pyint.loadPythonScript("scripts/make_bias_calibration_table.py"); 
 
     GRAMS_TOF_CommandServer server(
         12345,
@@ -29,23 +30,41 @@ int main() {
             switch (code) {
                 case TOFCommandCode::START_DAQ:
                     std::cout << "[CommandServer] Starting DAQ...\n";
-                    daq.run(); // Hypothetical
+                    daq.run(); 
+                    break;
+
+                case TOFCommandCode::STOP_DAQ:
+                    std::cout << "[CommandServer] Stoping DAQ...\n";
+                    daq.stop(); 
+                    break;
+
+                case TOFCommandCode::RESET_DAQ:
+                    std::cout << "[CommandServer] Resetting DAQ...\n";
+                    daq.reset(); 
+                    break;
+
+                case TOFCommandCode::RUN_INIT_SYS:
+                    std::cout << "[CommandServer] Executing init_system.py script...\n";
+                    pyint.runPetsysInitSystem(
+                        "scripts.init_system"  // module name
+                    );
                     break;
 
                 case TOFCommandCode::RUN_BIAS_CAL:
-                    std::cout << "[CommandServer] Executing bias calibration script...\n";
-                    pyint.runMakeBiasCalibrationTable(
-                        "scripts.make_bias_calibration_table",  // module name (not path)
+                    std::cout << "[CommandServer] Executing make_bias_calibration_table.py script...\n";
+                    pyint.runPetsysMakeBiasCalibrationTable(
+                        "scripts.make_bias_calibration_table",  // module name 
                         "/tmp/bias_output.txt",                 // output file
                         {argv.size() > 0 ? argv[0] : 0},        // portIDs.
                         {argv.size() > 1 ? argv[1] : 0},        // slaveIDs
                         {argv.size() > 2 ? argv[2] : 0},        // slotIDs
                         {}                                      // no calibration files
-                  );
-                  break;
+                    );
+                    break;
 
               default:
-                std::cerr << "[CommandServer] Unknown or unhandled command code: " << static_cast<uint16_t>(code) << "\n";
+               std::cerr << "[CommandServer] Unknown or unhandled command code: 0x" 
+                          << std::hex << static_cast<uint16_t>(code) << std::endl;
             }
         }
     );
