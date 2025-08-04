@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <exception>
+#include <Python.h>
 
 // Only one place for bindings in your project!
 PYBIND11_EMBEDDED_MODULE(grams_tof, m) {
@@ -64,16 +65,31 @@ public:
         }
     }
 
-    bool runMakeBiasCalibrationTable(const std::string& scriptPath,
-                                     const std::string& outputFile,
-                                     const std::vector<int>& portIDs,
-                                     const std::vector<int>& slaveIDs,
-                                     const std::vector<int>& slotIDs,
-                                     const std::vector<std::string>& filenames) {
+    bool runPetsysInitSystem(const std::string& scriptPath) {
         namespace py = pybind11;
         try {
-            std::cout << "[PythonIntegration] Script module: " << scriptPath << std::endl;
+            auto mbct = py::module_::import(scriptPath.c_str());
+            auto func = mbct.attr("init_system");
 
+            std::cout << "[PythonIntegration] Calling init_system()\n";
+            func();
+            return true;
+        } catch (const py::error_already_set &e) {
+            //std::cerr << "[PythonIntegration] Python exception what(): " << e.what() << std::endl;
+            std::cerr << "[PythonIntegration] Python exception what() " << std::endl;
+            PyErr_Clear();
+            return false;
+        }
+    }
+
+    bool runPetsysMakeBiasCalibrationTable(const std::string& scriptPath,
+                                           const std::string& outputFile,
+                                           const std::vector<int>& portIDs,
+                                           const std::vector<int>& slaveIDs,
+                                           const std::vector<int>& slotIDs,
+                                           const std::vector<std::string>& filenames) {
+        namespace py = pybind11;
+        try {
             auto mbct = py::module_::import(scriptPath.c_str());
             auto func = mbct.attr("make_bias_calibration_table");
 
@@ -88,7 +104,10 @@ public:
             return true;
         //} catch (const std::exception& e) {
         } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] Python exception what(): '" << e.what() << "'" << std::endl;
+            //std::cerr << "[PythonIntegration] Python exception what(): '" << e.what() << "'" << std::endl;
+            std::cerr << "[PythonIntegration] Python exception what(): " << std::endl;
+            PyErr_Clear();
+            return false;
         }
     }
 
@@ -112,14 +131,16 @@ public:
     void execPythonFunction(const std::string& func_name) {
         impl_->execPythonFunction(func_name);
     }
-
-    bool runMakeBiasCalibrationTable(const std::string& scriptModule,
-                                     const std::string& outputFile,
-                                     const std::vector<int>& portIDs,
-                                     const std::vector<int>& slaveIDs,
-                                     const std::vector<int>& slotIDs,
-                                     const std::vector<std::string>& filenames) {
-        return impl_->runMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
+    bool runPetsysInitSystem(const std::string& scriptModule) {
+        return impl_->runPetsysInitSystem(scriptModule);
+    }
+    bool runPetsysMakeBiasCalibrationTable(const std::string& scriptModule,
+                                           const std::string& outputFile,
+                                           const std::vector<int>& portIDs,
+                                           const std::vector<int>& slaveIDs,
+                                           const std::vector<int>& slotIDs,
+                                           const std::vector<std::string>& filenames) {
+        return impl_->runPetsysMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
     }
 
 private:
@@ -128,7 +149,14 @@ private:
 
 // ---- Interface implementation wraps the real implementation ----
 GRAMS_TOF_PythonIntegration::GRAMS_TOF_PythonIntegration(GRAMS_TOF_DAQManager& daq)
-    : impl_(std::make_unique<Impl>(daq)) {}
+    : impl_(std::make_unique<Impl>(daq)) {
+    // Set the special flag to prevent __main__ in scripts
+    PyRun_SimpleString("import sys; sys._called_from_c = True");
+
+    // If you also want to load scripts automatically, you can do it here too:
+    loadPythonScript("scripts/init_system.py");
+    loadPythonScript("scripts/make_bias_calibration_table.py");
+}
 
 GRAMS_TOF_PythonIntegration::~GRAMS_TOF_PythonIntegration() = default;
 
@@ -140,13 +168,17 @@ void GRAMS_TOF_PythonIntegration::execPythonFunction(const std::string& func_nam
     impl_->execPythonFunction(func_name);
 }
 
-bool GRAMS_TOF_PythonIntegration::runMakeBiasCalibrationTable(
+bool GRAMS_TOF_PythonIntegration::runPetsysInitSystem(const std::string& scriptModule) {
+    return impl_->runPetsysInitSystem(scriptModule);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysMakeBiasCalibrationTable(
     const std::string& scriptModule,
     const std::string& outputFile,
     const std::vector<int>& portIDs,
     const std::vector<int>& slaveIDs,
     const std::vector<int>& slotIDs,
     const std::vector<std::string>& filenames) {
-    return impl_->runMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
+    return impl_->runPetsysMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
 }
 

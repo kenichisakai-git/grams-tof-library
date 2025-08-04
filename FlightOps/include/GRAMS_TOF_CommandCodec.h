@@ -20,6 +20,7 @@ class GRAMS_TOF_CommandCodec {
 public:
     struct Packet {
         TOFCommandCode code;
+        uint16_t argc;
         std::vector<int32_t> argv;
     };
 
@@ -28,5 +29,8 @@ public:
 
     // Serialize Packet into raw bytes
     static std::vector<uint8_t> serialize(const Packet& packet);
+
+private:
+    static uint16_t computeCRC16(const uint8_t* data, size_t len);
 };
 
