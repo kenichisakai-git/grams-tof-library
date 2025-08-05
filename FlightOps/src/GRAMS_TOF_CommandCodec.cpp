@@ -1,4 +1,5 @@
 #include "GRAMS_TOF_CommandCodec.h"
+#include "GRAMS_TOF_Logger.h"
 #include <iostream>
 
 static uint16_t read16(const uint8_t* ptr) {
@@ -28,7 +29,7 @@ bool GRAMS_TOF_CommandCodec::parse(const std::vector<uint8_t>& data, Packet& out
     uint16_t header1 = read16(ptr);
     uint16_t header2 = read16(ptr + 2);
     if (header1 != 0xEB90 || header2 != 0x5B6A) {
-        std::cerr << "[Codec] Invalid header.\n";
+        Logger::instance().error("[Codec] Invalid header");
         return false;
     }
 
@@ -38,7 +39,7 @@ bool GRAMS_TOF_CommandCodec::parse(const std::vector<uint8_t>& data, Packet& out
     size_t expectedSize = payloadSize + 2 + 2 + 2; // + CRC + Footer1 + Footer2
 
     if (data.size() < expectedSize) {
-        std::cerr << "[Codec] Packet too short for argc = " << argc << ".\n";
+        Logger::instance().error("[Codec] Packet too short for argc = {}", argc);
         return false;
     }
 
@@ -46,19 +47,18 @@ bool GRAMS_TOF_CommandCodec::parse(const std::vector<uint8_t>& data, Packet& out
     uint16_t receivedCRC = read16(ptr + payloadSize);
     uint16_t computedCRC = computeCRC16(ptr, payloadSize);
     if (receivedCRC != computedCRC) {
-        std::cerr << "[Codec] CRC mismatch. Received 0x" << std::hex << receivedCRC
-                  << ", Expected 0x" << computedCRC << "\n";
+        Logger::instance().error("[Codec] CRC mismatch. Received 0x{:X}, Expected 0x{:X}", receivedCRC, computedCRC);
         return false;
     }
 
     uint16_t footer1 = read16(ptr + payloadSize + 2);
     uint16_t footer2 = read16(ptr + payloadSize + 4);
     if (footer1 != 0xC5A4 || footer2 != 0xD279) {
-        std::cerr << "[Codec] Invalid footer.\n";
+        Logger::instance().error("[Codec] Invalid footer");
         return false;
     }
-
-    std::cout << "[Parser] Parsed code = 0x" << std::hex << code << ", argc = " << argc << std::dec << "\n";
+        
+    Logger::instance().detail("[Parser] Parsed code = 0x{:X}, argc = {}", code, argc);
     outPacket.code = static_cast<TOFCommandCode>(code);
     outPacket.argc = argc;
     outPacket.argv.clear();

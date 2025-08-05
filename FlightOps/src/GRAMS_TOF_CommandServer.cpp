@@ -1,5 +1,6 @@
 #include "GRAMS_TOF_CommandServer.h"
 #include "GRAMS_TOF_CommandCodec.h"
+#include "GRAMS_TOF_Logger.h"
 #include <iostream>
 #include <sstream>
 #include <cstring>      // for memset
@@ -36,7 +37,7 @@ void GRAMS_TOF_CommandServer::run() {
     int addrlen = sizeof(address);
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        std::cerr << "Socket failed.\n";
+        Logger::instance().error("[CommandServer] Socket failed");
         return;
     }
 
@@ -47,14 +48,14 @@ void GRAMS_TOF_CommandServer::run() {
     address.sin_port = htons(port_);
 
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-        std::cerr << "Bind failed on port " << port_ << ".\n";
+        Logger::instance().error("[CommandServer] Bind failed on port {}", port_);
         close(server_fd); return;
     }
     if (listen(server_fd, 3) < 0) {
-        std::cerr << "Listen failed.\n";
+        Logger::instance().error("[CommandServer] Listen failed");
         close(server_fd); return;
     }
-    std::cout << "[CommandServer] Listening on port " << port_ << "...\n";
+    Logger::instance().info("[CommandServer] Listening on port {}", port_);
 
     while (running_) {
         fd_set set;
@@ -76,7 +77,7 @@ void GRAMS_TOF_CommandServer::run() {
             if (GRAMS_TOF_CommandCodec::parse(data, pkt)) {
                 handler_(pkt); 
             } else {
-                std::cerr << "[Server] Failed to parse incoming packet.\n";
+                Logger::instance().error("[CommandServer] Failed to parse incoming packet");
             }
         }
         close(new_socket);

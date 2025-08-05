@@ -1,6 +1,7 @@
 #include "GRAMS_TOF_PythonIntegration.h"
 #include <pybind11/embed.h>
 #include "GRAMS_TOF_DAQManager.h"
+#include "GRAMS_TOF_Logger.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -29,9 +30,9 @@ public:
             auto globals = py::globals();
             py::module_::import("grams_tof");
             globals["daq"] = py::cast(&daq_, py::return_value_policy::reference);
-            std::cout << "[PythonIntegration] Python interpreter initialized and DAQ manager injected.\n";
+            Logger::instance().info("[PythonIntegration] Python interpreter initialized and DAQ manager injected.");
         } catch (const std::exception& e) {
-            std::cerr << "[PythonIntegration] Exception during Python initialization: " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] Exception during Python initialization: {}", e.what());
             throw;
         }
     }
@@ -41,16 +42,16 @@ public:
         try {
             std::ifstream infile(filename);
             if (!infile) {
-                std::cerr << "[PythonIntegration] Could not open script: " << filename << std::endl;
+                Logger::instance().error("[PythonIntegration] Could not open script: {}", filename);
                 return;
             }
             std::stringstream buffer;
             buffer << infile.rdbuf();
 
             py::exec(buffer.str(), py::globals());
-            std::cout << "[PythonIntegration] Loaded Python script: " << filename << std::endl;
+            Logger::instance().info("[PythonIntegration] Loaded Python script: {}", filename);
         } catch (const std::exception& e) {
-            std::cerr << "[PythonIntegration] Exception during script load: " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] Exception during script load:", e.what());
         }
     }
 
@@ -58,32 +59,40 @@ public:
         namespace py = pybind11;
         try {
             std::string cmd = func_name + "()";
-            std::cout << "[PythonIntegration] Calling Python: " << cmd << std::endl;
+            Logger::instance().info("[PythonIntegration] Calling Python:: {}", cmd);
             py::eval(cmd, py::globals());
         } catch (const std::exception& e) {
-            std::cerr << "[PythonIntegration] Exception running " << func_name << ": " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] Exception running {} : {}", func_name, e.what());
         }
     }
 
-    bool runPetsysInitSystem(const std::string& scriptPath) {
+    template <typename... Args>
+    bool runPythonFunction(const std::string& scriptPath,
+                           const std::string& functionName,
+                           Args&&... args)
+    {
         namespace py = pybind11;
         try {
-            auto mbct = py::module_::import(scriptPath.c_str());
-            auto func = mbct.attr("safe_init_system");
-
-            std::cout << "[PythonIntegration] Calling safe_init_system()\n";
-            if (!func().cast<bool>()) { 
-                std::cerr << "[PythonIntegration] init_system() failed.\n";
+            auto module = py::module_::import(scriptPath.c_str());
+            auto func = module.attr(functionName.c_str());
+    
+            Logger::instance().info("[PythonIntegration] Calling {}()", functionName);
+            if (!func(std::forward<Args>(args)...).template cast<bool>()) {
+                Logger::instance().error("[PythonIntegration] {}() returned false.", functionName);
                 return false;
             }
             return true;
-        } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] UNEXPECTED Python exception: " << e.what() << std::endl;
+        } catch (const py::error_already_set& e) {
+            Logger::instance().error("[PythonIntegration] Exception in {}(): {}", functionName, e.what());
             PyErr_Clear();
             return false;
         }
     }
 
+    bool runPetsysInitSystem(const std::string& scriptPath) {
+        return runPythonFunction(scriptPath, "safe_init_system");
+    }
+    
     bool runPetsysMakeBiasCalibrationTable(const std::string& scriptPath,
                                            const std::string& outputFile,
                                            const std::vector<int>& portIDs,
@@ -91,27 +100,40 @@ public:
                                            const std::vector<int>& slotIDs,
                                            const std::vector<std::string>& filenames) {
         namespace py = pybind11;
-        try {
-            auto mbct = py::module_::import(scriptPath.c_str());
-            auto func = mbct.attr("safe_make_bias_calibration_table");
+        py::list py_ports, py_slaves, py_slots, py_files;
+        for (auto v : portIDs) py_ports.append(v);
+        for (auto v : slaveIDs) py_slaves.append(v);
+        for (auto v : slotIDs) py_slots.append(v);
+        for (const auto& f : filenames) py_files.append(f);
+    
+        return runPythonFunction(scriptPath, "safe_make_bias_calibration_table",
+                                 outputFile, py_ports, py_slaves, py_slots, py_files);
+    }
 
-            py::list py_ports, py_slaves, py_slots, py_files;
-            for (auto v : portIDs) py_ports.append(v);
-            for (auto v : slaveIDs) py_slaves.append(v);
-            for (auto v : slotIDs) py_slots.append(v);
-            for (auto& f : filenames) py_files.append(f);
+    bool runPetsysMakeSimpleBiasSettingsTable(const std::string& scriptPath,
+                                              const std::string& configPath,
+                                              float offset,
+                                              float prebd,
+                                              float bd,
+                                              float over,
+                                              const std::string& outputPath) {
+        return runPythonFunction(scriptPath, "safe_make_simple_bias_settings_table",
+                                 configPath, offset, prebd, bd, over, outputPath);
+    }
+    
+    bool runPetsysMakeSimpleChannelMap(const std::string& scriptPath,
+                                       const std::string& outputFile) {
+        return runPythonFunction(scriptPath, "safe_make_simple_channel_map", outputFile);
+    }
 
-            std::cout << "[PythonIntegration] Calling make_bias_calibration_table()\n";
-            if (!func(outputFile, py_ports, py_slaves, py_slots, py_files).cast<bool>()) {
-                std::cerr << "[PythonIntegration] init_system() failed.\n";
-                return false;
-            }
-            return true;
-        } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] UNEXPECTED Python exception: " << e.what() << std::endl;
-            PyErr_Clear();
-            return false;
-        }
+    bool runPetsysMakeSimpleDiscSettingsTable(const std::string& scriptPath,
+                                              const std::string& configPath,
+                                              int vth_t1,
+                                              int vth_t2,
+                                              int vth_e,
+                                              const std::string& outputPath) {
+        return runPythonFunction(scriptPath, "safe_make_simple_disc_settings_table",
+                                 configPath, vth_t1, vth_t2, vth_e, outputPath);
     }
 
 private:
@@ -134,18 +156,46 @@ public:
     void execPythonFunction(const std::string& func_name) {
         impl_->execPythonFunction(func_name);
     }
-    bool runPetsysInitSystem(const std::string& scriptModule) {
-        return impl_->runPetsysInitSystem(scriptModule);
+  
+    template <typename... Args>
+    bool runPythonFunction(const std::string& scriptPath,
+                           const std::string& functionName,
+                           Args&&... args) {
+        return impl_->runPythonFunction(scriptPath, functionName, std::forward<Args>(args)...);
     }
-    bool runPetsysMakeBiasCalibrationTable(const std::string& scriptModule,
+    bool runPetsysInitSystem(const std::string& scriptPath) {
+        return impl_->runPetsysInitSystem(scriptPath);
+    }
+    bool runPetsysMakeBiasCalibrationTable(const std::string& scriptPath,
                                            const std::string& outputFile,
                                            const std::vector<int>& portIDs,
                                            const std::vector<int>& slaveIDs,
                                            const std::vector<int>& slotIDs,
                                            const std::vector<std::string>& filenames) {
-        return impl_->runPetsysMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
+        return impl_->runPetsysMakeBiasCalibrationTable(scriptPath, outputFile, portIDs, slaveIDs, slotIDs, filenames);
     }
-
+    bool runPetsysMakeSimpleBiasSettingsTable(const std::string& scriptPath,
+                                              const std::string& configPath,
+                                              float offset,
+                                              float prebd,
+                                              float bd,
+                                              float over,
+                                              const std::string& outputPath) {
+        return impl_->runPetsysMakeSimpleBiasSettingsTable(scriptPath, configPath, offset, prebd, bd, over, outputPath);
+    }
+    bool runPetsysMakeSimpleChannelMap(const std::string& scriptPath,
+                                       const std::string& outputFile) {
+        return impl_->runPetsysMakeSimpleChannelMap(scriptPath, outputFile);
+    }
+    bool runPetsysMakeSimpleDiscSettingsTable(const std::string& scriptPath,
+                                              const std::string& configPath,
+                                              int vth_t1,
+                                              int vth_t2,
+                                              int vth_e,
+                                              const std::string& outputPath) {
+        return impl_->runPetsysMakeSimpleDiscSettingsTable(scriptPath, configPath, vth_t1, vth_t2, vth_e, outputPath);
+    }
+  
 private:
     std::unique_ptr<PythonIntegrationImpl> impl_;
 };
@@ -159,6 +209,9 @@ GRAMS_TOF_PythonIntegration::GRAMS_TOF_PythonIntegration(GRAMS_TOF_DAQManager& d
     // If you also want to load scripts automatically, you can do it here too:
     loadPythonScript("scripts/init_system.py");
     loadPythonScript("scripts/make_bias_calibration_table.py");
+    loadPythonScript("scripts/make_simple_bias_settings_table.py");
+    loadPythonScript("scripts/make_simple_channel_map.py");
+    loadPythonScript("scripts/make_simple_disc_settings_table.py");
 }
 
 GRAMS_TOF_PythonIntegration::~GRAMS_TOF_PythonIntegration() = default;
@@ -171,17 +224,51 @@ void GRAMS_TOF_PythonIntegration::execPythonFunction(const std::string& func_nam
     impl_->execPythonFunction(func_name);
 }
 
-bool GRAMS_TOF_PythonIntegration::runPetsysInitSystem(const std::string& scriptModule) {
-    return impl_->runPetsysInitSystem(scriptModule);
+template <typename... Args>
+bool GRAMS_TOF_PythonIntegration::runPythonFunction(const std::string& scriptPath,
+                       const std::string& functionName,
+                       Args&&... args) {
+   return impl_->runPythonFunction(scriptPath, functionName, std::forward<Args>(args)...);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysInitSystem(const std::string& scriptPath) {
+    return impl_->runPetsysInitSystem(scriptPath);
 }
 
 bool GRAMS_TOF_PythonIntegration::runPetsysMakeBiasCalibrationTable(
-    const std::string& scriptModule,
+    const std::string& scriptPath,
     const std::string& outputFile,
     const std::vector<int>& portIDs,
     const std::vector<int>& slaveIDs,
     const std::vector<int>& slotIDs,
     const std::vector<std::string>& filenames) {
-    return impl_->runPetsysMakeBiasCalibrationTable(scriptModule, outputFile, portIDs, slaveIDs, slotIDs, filenames);
+    return impl_->runPetsysMakeBiasCalibrationTable(scriptPath, outputFile, portIDs, slaveIDs, slotIDs, filenames);
 }
+
+bool GRAMS_TOF_PythonIntegration::runPetsysMakeSimpleBiasSettingsTable(
+    const std::string& scriptPath,
+    const std::string& configPath,
+    float offset,
+    float prebd,
+    float bd,
+    float over,
+    const std::string& outputPath) {
+    return impl_->runPetsysMakeSimpleBiasSettingsTable(scriptPath, configPath, offset, prebd, bd, over, outputPath);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysMakeSimpleChannelMap(const std::string& scriptPath,
+                                                                const std::string& outputFile) {
+    return impl_->runPetsysMakeSimpleChannelMap(scriptPath, outputFile);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysMakeSimpleDiscSettingsTable(
+    const std::string& scriptPath,
+    const std::string& configPath,
+    int vth_t1,
+    int vth_t2,
+    int vth_e,
+    const std::string& outputPath) {
+   return impl_->runPetsysMakeSimpleDiscSettingsTable(scriptPath, configPath, vth_t1, vth_t2, vth_e, outputPath);
+}
+
 
