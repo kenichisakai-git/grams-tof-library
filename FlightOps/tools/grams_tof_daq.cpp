@@ -65,6 +65,39 @@ int main() {
                     );
                     break;
 
+                case TOFCommandCode::RUN_BIAS_SET:
+                    Logger::instance().warn("[CommandServer] Executing make_simple_bias_settings_table.py script..."); 
+                    pyint.runPetsysMakeSimpleBiasSettingsTable(
+                        "scripts.make_simple_bias_settings_table", // module name 
+                        "/tmp/config.dat",                         // Configuration file
+                        static_cast<float>(argv.size() > 0 ? argv[0] : 0),  // Bias channel offset
+                        static_cast<float>(argv.size() > 1 ? argv[1] : 0),  // Pre-breakdown voltage
+                        static_cast<float>(argv.size() > 2 ? argv[2] : 0),  // Breakdown voltage
+                        static_cast<float>(argv.size() > 3 ? argv[3] : 0),  // Nominal overvoltage
+                        {}                                                  // Output file
+                    );
+                    break;
+
+                case TOFCommandCode::RUN_CHAN_MAP:
+                    Logger::instance().warn("[CommandServer] Executing make_simple_channel_map.py script..."); 
+                    pyint.runPetsysMakeSimpleChannelMap(
+                        "scripts.make_simple_channel_map", // module name 
+                        {}                                 // Output file
+                    );
+                    break;
+
+                case TOFCommandCode::RUN_DISC_SET:
+                    Logger::instance().warn("[CommandServer] Executing make_simple_disc_settings_table.py script..."); 
+                    pyint.runPetsysMakeSimpleDiscSettingsTable(
+                        "scripts.make_simple_disc_settings_table", // module name 
+                        "/tmp/config.dat",                         // Configuration file
+                        {argv.size() > 0 ? argv[0] : 0},           // Discriminator T1 (DAC above zero)
+                        {argv.size() > 1 ? argv[1] : 0},           // Discriminator T2 (DAC above zero)
+                        {argv.size() > 2 ? argv[2] : 0},           // Discriminator E (DAC above zero)
+                        {}                                         // Output file
+                    );
+                    break;
+
               default:
                Logger::instance().error("[CommandServer] Unknown or unhandled command code: 0x{:X}", code);
             }
