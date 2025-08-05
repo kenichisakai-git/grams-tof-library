@@ -69,16 +69,14 @@ public:
         namespace py = pybind11;
         try {
             auto mbct = py::module_::import(scriptPath.c_str());
-            auto func = mbct.attr("safe_init_system");
+            auto func = mbct.attr("init_system");
 
-            std::cout << "[PythonIntegration] Calling safe_init_system()\n";
-            if (!func().cast<bool>()) { 
-                std::cerr << "[PythonIntegration] init_system() failed.\n";
-                return false;
-            }
+            std::cout << "[PythonIntegration] Calling init_system()\n";
+            func();
             return true;
         } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] UNEXPECTED Python exception: " << e.what() << std::endl;
+            //std::cerr << "[PythonIntegration] Python exception what(): " << e.what() << std::endl;
+            std::cerr << "[PythonIntegration] Python exception what() " << std::endl;
             PyErr_Clear();
             return false;
         }
@@ -93,7 +91,7 @@ public:
         namespace py = pybind11;
         try {
             auto mbct = py::module_::import(scriptPath.c_str());
-            auto func = mbct.attr("safe_make_bias_calibration_table");
+            auto func = mbct.attr("make_bias_calibration_table");
 
             py::list py_ports, py_slaves, py_slots, py_files;
             for (auto v : portIDs) py_ports.append(v);
@@ -102,13 +100,12 @@ public:
             for (auto& f : filenames) py_files.append(f);
 
             std::cout << "[PythonIntegration] Calling make_bias_calibration_table()\n";
-            if (!func(outputFile, py_ports, py_slaves, py_slots, py_files).cast<bool>()) {
-                std::cerr << "[PythonIntegration] init_system() failed.\n";
-                return false;
-            }
+            func(outputFile, py_ports, py_slaves, py_slots, py_files);
             return true;
+        //} catch (const std::exception& e) {
         } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] UNEXPECTED Python exception: " << e.what() << std::endl;
+            //std::cerr << "[PythonIntegration] Python exception what(): '" << e.what() << "'" << std::endl;
+            std::cerr << "[PythonIntegration] Python exception what(): " << std::endl;
             PyErr_Clear();
             return false;
         }

@@ -6,6 +6,8 @@ import argparse
 import struct
 import sys
 import re
+import os
+import traceback
 
 def add_calibration_from_rom(connection, portID, slaveID, slotID, outputFile):
 	chipID = 0x8000 + 0x100 * slotID + 0x0
@@ -145,6 +147,15 @@ def make_bias_calibration_table(output_path, port_ids=None, slave_ids=None, slot
     print("[run_bias_calibration] Done.")
     return True
 
+def safe_make_bias_calibration_table(output_path, port_ids=None, slave_ids=None, slot_ids=None, filenames=None):
+    try:
+        make_bias_calibration_table(output_path, port_ids, slave_ids, slot_ids, filenames)
+        return True
+    except Exception as e:
+        print("[Python] Caught:", e)
+        if os.environ.get("DEBUG"):
+            traceback.print_exc()
+        return False
 
 def main():
     parser = argparse.ArgumentParser(description='Make a simple SiPM bias voltage table')
@@ -155,7 +166,7 @@ def main():
     parser.add_argument("--filename", type=str, action="append", default=[], help="File name")
     args = parser.parse_args()
 
-    make_bias_calibration_table(args.o, args.port, args.slave, args.slotID, args.filename)
+    safe_make_bias_calibration_table(args.o, args.port, args.slave, args.slotID, args.filename)
 
 if __name__ == '__main__' and not hasattr(sys, '_called_from_c'):
     main()

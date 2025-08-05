@@ -19,8 +19,8 @@ int main() {
     }
     */
 
+    setenv("DEBUG", "1", 1); 
     GRAMS_TOF_PythonIntegration pyint(daq);
-
     GRAMS_TOF_CommandServer server(
         12345,
         [&](const GRAMS_TOF_CommandCodec::Packet& pkt) { 
