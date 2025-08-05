@@ -1,6 +1,7 @@
 #include "GRAMS_TOF_PythonIntegration.h"
 #include <pybind11/embed.h>
 #include "GRAMS_TOF_DAQManager.h"
+#include "GRAMS_TOF_Logger.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -29,9 +30,9 @@ public:
             auto globals = py::globals();
             py::module_::import("grams_tof");
             globals["daq"] = py::cast(&daq_, py::return_value_policy::reference);
-            std::cout << "[PythonIntegration] Python interpreter initialized and DAQ manager injected.\n";
+            Logger::instance().info("[PythonIntegration] Python interpreter initialized and DAQ manager injected.");
         } catch (const std::exception& e) {
-            std::cerr << "[PythonIntegration] Exception during Python initialization: " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] Exception during Python initialization: {}", e.what());
             throw;
         }
     }
@@ -41,16 +42,16 @@ public:
         try {
             std::ifstream infile(filename);
             if (!infile) {
-                std::cerr << "[PythonIntegration] Could not open script: " << filename << std::endl;
+                Logger::instance().error("[PythonIntegration] Could not open script: {}", filename);
                 return;
             }
             std::stringstream buffer;
             buffer << infile.rdbuf();
 
             py::exec(buffer.str(), py::globals());
-            std::cout << "[PythonIntegration] Loaded Python script: " << filename << std::endl;
+            Logger::instance().info("[PythonIntegration] Loaded Python script: {}", filename);
         } catch (const std::exception& e) {
-            std::cerr << "[PythonIntegration] Exception during script load: " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] Exception during script load:", e.what());
         }
     }
 
@@ -58,10 +59,10 @@ public:
         namespace py = pybind11;
         try {
             std::string cmd = func_name + "()";
-            std::cout << "[PythonIntegration] Calling Python: " << cmd << std::endl;
+            Logger::instance().info("[PythonIntegration] Calling Python:: {}", cmd);
             py::eval(cmd, py::globals());
         } catch (const std::exception& e) {
-            std::cerr << "[PythonIntegration] Exception running " << func_name << ": " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] Exception running {} : {}", func_name, e.what());
         }
     }
 
@@ -71,14 +72,14 @@ public:
             auto mbct = py::module_::import(scriptPath.c_str());
             auto func = mbct.attr("safe_init_system");
 
-            std::cout << "[PythonIntegration] Calling safe_init_system()\n";
+            Logger::instance().info("[PythonIntegration] Calling safe_init_system()");
             if (!func().cast<bool>()) { 
-                std::cerr << "[PythonIntegration] init_system() failed.\n";
+                Logger::instance().error("[PythonIntegration] init_system() failed.");
                 return false;
             }
             return true;
         } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] UNEXPECTED Python exception: " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] UNEXPECTED Python exception: {}", e.what());
             PyErr_Clear();
             return false;
         }
@@ -101,14 +102,14 @@ public:
             for (auto v : slotIDs) py_slots.append(v);
             for (auto& f : filenames) py_files.append(f);
 
-            std::cout << "[PythonIntegration] Calling make_bias_calibration_table()\n";
+            Logger::instance().info("[PythonIntegration] Calling make_bias_calibration_table()");
             if (!func(outputFile, py_ports, py_slaves, py_slots, py_files).cast<bool>()) {
-                std::cerr << "[PythonIntegration] init_system() failed.\n";
+                Logger::instance().error("[PythonIntegration] make_bias_calibration_table() failed.");
                 return false;
             }
             return true;
         } catch (const py::error_already_set &e) {
-            std::cerr << "[PythonIntegration] UNEXPECTED Python exception: " << e.what() << std::endl;
+            Logger::instance().error("[PythonIntegration] UNEXPECTED Python exception: {}", e.what());
             PyErr_Clear();
             return false;
         }

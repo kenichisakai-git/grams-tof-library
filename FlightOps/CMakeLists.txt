@@ -16,6 +16,7 @@ target_include_directories(GramsTofFlightOpsLib PUBLIC
 target_link_libraries(GramsTofFlightOpsLib PUBLIC pybind11::embed)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC Python3::Python)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC GramsTofDaqdLib)
+target_link_libraries(GramsTofFlightOpsLib PUBLIC fmt::fmt)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC rt)
 
 add_executable(grams_tof_daq.exe tools/grams_tof_daq.cpp)
@@ -48,3 +49,8 @@ add_subdirectory(external/rawdata)
 add_subdirectory(external/daqd)
 add_subdirectory(external/pybind11)
 
+set(FMT_INSTALL ON CACHE BOOL "" FORCE)
+set(FMT_STATIC ON CACHE BOOL "" FORCE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+add_subdirectory(external/fmt-7.1.3)
+set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE ON)
