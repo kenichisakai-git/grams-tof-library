@@ -12,6 +12,8 @@ public:
     explicit GRAMS_TOF_PythonIntegration(GRAMS_TOF_DAQManager& daq);
     ~GRAMS_TOF_PythonIntegration();
 
+    GRAMS_TOF_DAQManager& getDAQ();
+
     void loadPythonScript(const std::string& filename);
     void execPythonFunction(const std::string& func_name);
 
@@ -41,6 +43,32 @@ public:
                                               int vth_t2,
                                               int vth_e,
                                               const std::string& outputPath);
+    bool runPetsysReadTemperatureSensors(const std::string& scriptPath,
+                                         double acq_time,
+                                         double interval,
+                                         const std::string& fileName,
+                                         bool startup,
+                                         bool debug);
+    bool runPetsysAcquireThresholdCalibration(const std::string& scriptPath,
+                                              const std::string& configFile,
+                                              const std::string& outFilePrefix,
+                                              int noise_reads,
+                                              int dark_reads,
+                                              bool ext_bias);
+    bool runPetsysAcquireQdcCalibration(const std::string& scriptPath,
+                                        const std::string& configPath,
+                                        const std::string& fileNamePrefix);
+    bool runPetsysAcquireTdcCalibration(const std::string& scriptPath,
+                                        const std::string& configPath,
+                                        const std::string& fileNamePrefix);
+    bool runPetsysAcquireSipmData(const std::string& scriptPath,
+                                  const std::string& configPath,
+                                  const std::string& fileNamePrefix,
+                                  double acquisitionTime,
+                                  const std::string& mode,
+                                  bool hwTrigger,
+                                  const std::string& paramTable);
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;

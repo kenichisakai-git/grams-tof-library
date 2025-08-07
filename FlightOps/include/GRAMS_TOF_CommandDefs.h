@@ -4,30 +4,41 @@
 #include <ostream>
 
 enum class TOFCommandCode : uint16_t {
-    START_DAQ    = 0x5000,
-    STOP_DAQ     = 0x5001,
-    RESET_DAQ    = 0x5002,
+    START_DAQ                              = 0x5000,
+    STOP_DAQ                               = 0x5001,
+    RESET_DAQ                              = 0x5002,
 
-    RUN_INIT_SYS = 0x5100,
-    RUN_BIAS_CAL = 0x5101,
-    RUN_BIAS_SET = 0x5102,
-    RUN_CHAN_MAP = 0x5103,
-    RUN_DISC_SET = 0x5104
+    RUN_INIT_SYSTEM                        = 0x5100,
+    RUN_MAKE_BIAS_CALIB_TABLE              = 0x5101,
+    RUN_MAKE_SIMPLE_BIAS_SET_TABLE         = 0x5102,
+    RUN_MAKE_SIMPLE_CHANNEL_MAP            = 0x5103,
+    RUN_MAKE_SIMPLE_DISC_SET_TABLE         = 0x5104,
+    RUN_READ_TEMPERATURE_SENSORS           = 0x5105,
+    RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x5106,
+    RUN_ACQUIRE_QDC_CALIBRATION            = 0x5107,
+    RUN_ACQUIRE_TDC_CALIBRATION            = 0x5108,
+    RUN_ACQUIRE_SIPM_DATA                  = 0x5109
 };
+
 
 inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
     switch (code) {
-        case TOFCommandCode::START_DAQ:    return os << "START_DAQ";
-        case TOFCommandCode::STOP_DAQ:     return os << "STOP_DAQ";
-        case TOFCommandCode::RESET_DAQ:    return os << "RESET_DAQ";
+        case TOFCommandCode::START_DAQ:                           return os << "START_DAQ";
+        case TOFCommandCode::STOP_DAQ:                            return os << "STOP_DAQ";
+        case TOFCommandCode::RESET_DAQ:                           return os << "RESET_DAQ";
 
-        case TOFCommandCode::RUN_INIT_SYS: return os << "RUN_INIT_SYS";
-        case TOFCommandCode::RUN_BIAS_CAL: return os << "RUN_BIAS_CAL";
-        case TOFCommandCode::RUN_BIAS_SET: return os << "RUN_BIAS_SET";
-        case TOFCommandCode::RUN_CHAN_MAP: return os << "RUN_CHAN_MAP";
-        case TOFCommandCode::RUN_DISC_SET: return os << "RUN_DISC_SET";
+        case TOFCommandCode::RUN_INIT_SYSTEM:                     return os << "RUN_INIT_SYSTEM";
+        case TOFCommandCode::RUN_MAKE_BIAS_CALIB_TABLE:           return os << "RUN_MAKE_BIAS_CALIB_TABLE";
+        case TOFCommandCode::RUN_MAKE_SIMPLE_BIAS_SET_TABLE:      return os << "RUN_MAKE_SIMPLE_BIAS_SET_TABLE";
+        case TOFCommandCode::RUN_MAKE_SIMPLE_CHANNEL_MAP:         return os << "RUN_MAKE_SIMPLE_CHANNEL_MAP";
+        case TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE:      return os << "RUN_MAKE_SIMPLE_DISC_SET_TABLE";
+        case TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS:        return os << "RUN_READ_TEMPERATURE_SENSORS";
+        case TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION:   return os << "RUN_ACQUIRE_THRESHOLD_CALIBRATION";
+        case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:         return os << "RUN_ACQUIRE_QDC_CALIBRATION";
+        case TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION:         return os << "RUN_ACQUIRE_TDC_CALIBRATION";
+        case TOFCommandCode::RUN_ACQUIRE_SIPM_DATA:               return os << "RUN_ACQUIRE_SIPM_DATA";
 
-        default:                           return os << "UNKNOWN_CODE";
+        default:                                                  return os << "UNKNOWN_CODE";
     }
 }
 
