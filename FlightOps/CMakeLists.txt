@@ -16,6 +16,7 @@ target_include_directories(GramsTofFlightOpsLib PUBLIC
 target_link_libraries(GramsTofFlightOpsLib PUBLIC pybind11::embed)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC Python3::Python)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC GramsTofDaqdLib)
+target_link_libraries(GramsTofFlightOpsLib PUBLIC GramsTofInihLib)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC fmt::fmt)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC rt)
 
@@ -25,6 +26,8 @@ target_link_libraries(grams_tof_daq.exe PRIVATE GramsTofFlightOpsLib)
 add_executable(grams_tof_client.exe tools/grams_tof_client.cpp)
 target_link_libraries(grams_tof_client.exe PRIVATE GramsTofFlightOpsLib)
 
+add_executable(grams_tof_config_test.exe tools/grams_tof_config_test.cpp)
+target_link_libraries(grams_tof_config_test.exe PRIVATE GramsTofFlightOpsLib)
 
 install(TARGETS GramsTofFlightOpsLib
     EXPORT GramsTofLibraryTargets
@@ -41,13 +44,19 @@ install(TARGETS grams_tof_client.exe
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
+install(TARGETS grams_tof_config_test.exe
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+)
+
 install(DIRECTORY external/petsys/  DESTINATION ${CMAKE_INSTALL_PREFIX}/petsys)
 install(DIRECTORY external/scripts/ DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
+install(DIRECTORY external/config/ DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
 
 add_subdirectory(external/kernel)
 add_subdirectory(external/rawdata)
 add_subdirectory(external/daqd)
 add_subdirectory(external/pybind11)
+add_subdirectory(external/inih)
 
 set(FMT_INSTALL ON CACHE BOOL "" FORCE)
 set(FMT_STATIC ON CACHE BOOL "" FORCE)
