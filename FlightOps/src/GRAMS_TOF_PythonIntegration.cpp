@@ -136,6 +136,51 @@ public:
                                  configPath, vth_t1, vth_t2, vth_e, outputPath);
     }
 
+    bool runPetsysReadTemperatureSensors(const std::string& scriptPath,
+                                         double acq_time = 0.0,
+                                         double interval = 60.0,
+                                         const std::string& fileName = "/dev/null",
+                                         bool startup = false,
+                                         bool debug = false) {
+        return runPythonFunction(scriptPath, "safe_read_temperature_sensors",
+                                 acq_time, interval, fileName, startup, debug);
+    }
+
+    bool runPetsysAcquireThresholdCalibration(const std::string& scriptPath,
+                                              const std::string& configFile,
+                                              const std::string& outFilePrefix,
+                                              int noise_reads = 4,
+                                              int dark_reads = 4,
+                                              bool ext_bias = false) {
+        return runPythonFunction(scriptPath, "safe_acquire_threshold_calibration",
+                                 configFile, outFilePrefix, noise_reads, dark_reads, ext_bias);
+    }
+
+    bool runPetsysAcquireQdcCalibration(const std::string& scriptPath,
+                                        const std::string& configPath,
+                                        const std::string& fileNamePrefix) {
+        return runPythonFunction(scriptPath, "safe_acquire_qdc_calibration",
+                                 configPath, fileNamePrefix);
+    }
+
+    bool runPetsysAcquireTdcCalibration(const std::string& scriptPath,
+                                        const std::string& configPath,
+                                        const std::string& fileNamePrefix) {
+        return runPythonFunction(scriptPath, "safe_acquire_tdc_calibration",
+                                 configPath, fileNamePrefix);
+    }
+
+    bool runPetsysAcquireSipmData(const std::string& scriptPath,
+                                  const std::string& configPath,
+                                  const std::string& fileNamePrefix,
+                                  double acquisitionTime,
+                                  const std::string& mode,
+                                  bool hwTrigger = false,
+                                  const std::string& paramTable = "") {
+        return runPythonFunction(scriptPath, "safe_acquire_sipm_data",
+                                 configPath, fileNamePrefix, acquisitionTime, mode, hwTrigger, paramTable);
+    }
+
 private:
     GRAMS_TOF_DAQManager& daq_;
     pybind11::scoped_interpreter guard_;
@@ -147,7 +192,7 @@ private:
 class GRAMS_TOF_PythonIntegration::Impl {
 public:
     explicit Impl(GRAMS_TOF_DAQManager& daq)
-        : impl_(std::make_unique<PythonIntegrationImpl>(daq)) {}
+        : daq_(daq), impl_(std::make_unique<PythonIntegrationImpl>(daq)) {}
     ~Impl() = default;
 
     void loadPythonScript(const std::string& filename) {
@@ -195,7 +240,51 @@ public:
                                               const std::string& outputPath) {
         return impl_->runPetsysMakeSimpleDiscSettingsTable(scriptPath, configPath, vth_t1, vth_t2, vth_e, outputPath);
     }
-  
+    bool runPetsysReadTemperatureSensors(const std::string& scriptPath,
+                                         double acq_time,
+                                         double interval,
+                                         const std::string& fileName,
+                                         bool startup,
+                                         bool debug) {
+        return impl_->runPetsysReadTemperatureSensors(scriptPath, acq_time, interval, fileName, startup, debug);
+    }
+    
+    bool runPetsysAcquireThresholdCalibration(const std::string& scriptPath,
+                                              const std::string& configFile,
+                                              const std::string& outFilePrefix,
+                                              int noise_reads,
+                                              int dark_reads,
+                                              bool ext_bias) {
+        return impl_->runPetsysAcquireThresholdCalibration(scriptPath, configFile, outFilePrefix,
+                                                           noise_reads, dark_reads, ext_bias);
+    }
+    
+    bool runPetsysAcquireQdcCalibration(const std::string& scriptPath,
+                                        const std::string& configPath,
+                                        const std::string& fileNamePrefix) {
+        return impl_->runPetsysAcquireQdcCalibration(scriptPath, configPath, fileNamePrefix);
+    }
+    
+    bool runPetsysAcquireTdcCalibration(const std::string& scriptPath,
+                                        const std::string& configPath,
+                                        const std::string& fileNamePrefix) {
+        return impl_->runPetsysAcquireTdcCalibration(scriptPath, configPath, fileNamePrefix);
+    }
+    
+    bool runPetsysAcquireSipmData(const std::string& scriptPath,
+                                  const std::string& configPath,
+                                  const std::string& fileNamePrefix,
+                                  double acquisitionTime,
+                                  const std::string& mode,
+                                  bool hwTrigger,
+                                  const std::string& paramTable) {
+        return impl_->runPetsysAcquireSipmData(scriptPath, configPath, fileNamePrefix,
+                                               acquisitionTime, mode, hwTrigger, paramTable);
+    } 
+
+    GRAMS_TOF_DAQManager& daq_;
+    GRAMS_TOF_DAQManager& getDAQ() { return daq_; }
+ 
 private:
     std::unique_ptr<PythonIntegrationImpl> impl_;
 };
@@ -212,6 +301,11 @@ GRAMS_TOF_PythonIntegration::GRAMS_TOF_PythonIntegration(GRAMS_TOF_DAQManager& d
     loadPythonScript("scripts/make_simple_bias_settings_table.py");
     loadPythonScript("scripts/make_simple_channel_map.py");
     loadPythonScript("scripts/make_simple_disc_settings_table.py");
+    loadPythonScript("scripts/read_temperature_sensors.py");
+    loadPythonScript("scripts/acquire_threshold_calibration.py");
+    loadPythonScript("scripts/acquire_qdc_calibration.py");
+    loadPythonScript("scripts/acquire_tdc_calibration.py");
+    loadPythonScript("scripts/acquire_sipm_data.py");
 }
 
 GRAMS_TOF_PythonIntegration::~GRAMS_TOF_PythonIntegration() = default;
@@ -269,6 +363,57 @@ bool GRAMS_TOF_PythonIntegration::runPetsysMakeSimpleDiscSettingsTable(
     int vth_e,
     const std::string& outputPath) {
    return impl_->runPetsysMakeSimpleDiscSettingsTable(scriptPath, configPath, vth_t1, vth_t2, vth_e, outputPath);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysReadTemperatureSensors(
+    const std::string& scriptPath,
+    double acq_time,
+    double interval,
+    const std::string& fileName,
+    bool startup,
+    bool debug) {
+    return impl_->runPetsysReadTemperatureSensors(scriptPath, acq_time, interval, fileName, startup, debug);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysAcquireThresholdCalibration(
+    const std::string& scriptPath,
+    const std::string& configFile,
+    const std::string& outFilePrefix,
+    int noise_reads,
+    int dark_reads,
+    bool ext_bias) {
+    return impl_->runPetsysAcquireThresholdCalibration(scriptPath, configFile, outFilePrefix,
+                                                       noise_reads, dark_reads, ext_bias);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysAcquireQdcCalibration(
+    const std::string& scriptPath,
+    const std::string& configPath,
+    const std::string& fileNamePrefix) {
+    return impl_->runPetsysAcquireQdcCalibration(scriptPath, configPath, fileNamePrefix);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysAcquireTdcCalibration(
+    const std::string& scriptPath,
+    const std::string& configPath,
+    const std::string& fileNamePrefix) {
+    return impl_->runPetsysAcquireTdcCalibration(scriptPath, configPath, fileNamePrefix);
+}
+
+bool GRAMS_TOF_PythonIntegration::runPetsysAcquireSipmData(
+    const std::string& scriptPath,
+    const std::string& configPath,
+    const std::string& fileNamePrefix,
+    double acquisitionTime,
+    const std::string& mode,
+    bool hwTrigger,
+    const std::string& paramTable) {
+    return impl_->runPetsysAcquireSipmData(scriptPath, configPath, fileNamePrefix,
+                                           acquisitionTime, mode, hwTrigger, paramTable);
+}
+
+GRAMS_TOF_DAQManager& GRAMS_TOF_PythonIntegration::getDAQ() {
+    return impl_->getDAQ();
 }
 
 
