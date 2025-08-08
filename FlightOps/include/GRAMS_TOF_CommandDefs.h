@@ -17,7 +17,9 @@ enum class TOFCommandCode : uint16_t {
     RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x5106,
     RUN_ACQUIRE_QDC_CALIBRATION            = 0x5107,
     RUN_ACQUIRE_TDC_CALIBRATION            = 0x5108,
-    RUN_ACQUIRE_SIPM_DATA                  = 0x5109
+    RUN_ACQUIRE_SIPM_DATA                  = 0x5109,
+    
+    RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x5200
 };
 
 
@@ -37,6 +39,8 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:         return os << "RUN_ACQUIRE_QDC_CALIBRATION";
         case TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION:         return os << "RUN_ACQUIRE_TDC_CALIBRATION";
         case TOFCommandCode::RUN_ACQUIRE_SIPM_DATA:               return os << "RUN_ACQUIRE_SIPM_DATA";
+        
+        case TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION:   return os << "RUN_PROCESS_THRESHOLD_CALIBRATION";
 
         default:                                                  return os << "UNKNOWN_CODE";
     }
