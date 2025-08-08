@@ -1,8 +1,8 @@
 #include "GRAMS_TOF_CommandDispatch.h"
 #include "GRAMS_TOF_Logger.h"
 
-GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration& pyint)
-    : pyint_(pyint), table_{} {
+GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration& pyint, GRAMS_TOF_Analyzer& analyzer)
+    : pyint_(pyint), analyzer_(analyzer), table_{} {
 
     table_[TOFCommandCode::START_DAQ] = [&](const std::vector<int>&) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Starting DAQ...");
@@ -126,6 +126,18 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
             ""                                          
         );
     };
+
+    table_[TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION] = [&](const std::vector<int>& argv) {
+        Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running threshold calibration...");
+    
+        std::string config     = "config.tsv";
+        std::string input      = "input_prefix";
+        std::string output     = "output.tsv";
+        std::string rootOutput = "output.root";
+    
+        return analyzer_.runPetsysProcessThresholdCalibration(config, input, output, rootOutput);
+    };
+
 }
 
 bool GRAMS_TOF_CommandDispatch::dispatch(TOFCommandCode code, const std::vector<int>& argv) const {

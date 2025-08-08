@@ -1,5 +1,6 @@
 #include "GRAMS_TOF_DAQManager.h"
 #include "GRAMS_TOF_PythonIntegration.h"
+#include "GRAMS_TOF_Analyzer.h"
 #include "GRAMS_TOF_CommandServer.h"
 #include "GRAMS_TOF_CommandDefs.h"
 #include "GRAMS_TOF_CommandDispatch.h"
@@ -25,7 +26,8 @@ int main() {
 
     setenv("DEBUG", "1", 1); 
     GRAMS_TOF_PythonIntegration pyint(daq);
-    GRAMS_TOF_CommandDispatch dispatchTable(pyint);
+    GRAMS_TOF_Analyzer analyzer;
+    GRAMS_TOF_CommandDispatch dispatchTable(pyint, analyzer);
 
     GRAMS_TOF_CommandServer server(
         12345,
