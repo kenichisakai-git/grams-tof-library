@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <assert.h>
 #include <errno.h>
+#include <sstream>
+#include <stdexcept>   
 
 #include "shm_raw.h"
 
@@ -19,8 +21,11 @@ SHM_RAW::SHM_RAW(std::string shmPath)
 			O_RDONLY, 
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 	if (shmfd < 0) {
-		fprintf(stderr, "Opening '%s' returned %d (errno = %d)\n", shmPath.c_str(), shmfd, errno );		
-		exit(1);
+		//fprintf(stderr, "Opening '%s' returned %d (errno = %d)\n", shmPath.c_str(), shmfd, errno );		
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Opening '" << shmPath << "' returned " << shmfd << " (errno = " << errno << ")";
+    throw std::runtime_error(oss.str());
 	}
 	shmSize = lseek(shmfd, 0, SEEK_END);
 	assert(shmSize = MaxRawDataFrameQueueSize * sizeof(RawDataFrame));

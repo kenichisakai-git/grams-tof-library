@@ -118,14 +118,20 @@ static void deleteTemporaryFiles(const char *outputFilePrefix);
 	sprintf(fName, "%s.bins", inputFilePrefix.c_str());
 	FILE *binsFile = fopen(fName, "r");
 	if(binsFile == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	int nBins;
 	float xMin, xMax;
 	if(fscanf(binsFile, "%d\t%f\t%f\n", &nBins, &xMin, &xMax) != 3) {
-		fprintf(stderr, "Error parsing %s\n", fName);
-		exit(1);
+		//fprintf(stderr, "Error parsing %s\n", fName);
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Error parsing " << fName;
+    throw std::runtime_error(oss.str());
 	}
 	
 	CalibrationEntry *calibrationTable = (CalibrationEntry *)mmap(NULL, sizeof(CalibrationEntry)*MAX_N_QAC, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
@@ -168,24 +174,33 @@ static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix)
 	sprintf(fName, "%s.idxf", inputFilePrefix);
 	FILE *indexFile = fopen(fName, "r");
 	if(indexFile == NULL) {
-			fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-			exit(1);
+			//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+			//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	
 	// Open the data file
 	sprintf(fName, "%s.rawf", inputFilePrefix);
 	FILE *dataFile = fopen(fName, "r");
 	if(dataFile == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 
 	// Create the temporary list file
 	sprintf(fName, "%s_list.tmp", tmpFilePrefix);
 	FILE *tmpListFile = fopen(fName, "w");
 	if(tmpListFile == NULL) {
-		fprintf(stderr, "Could not open '%s' for writing: %s\n", fName, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for writing: %s\n", fName, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for writing: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	
 	long startOffset, endOffset;
@@ -227,8 +242,11 @@ static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix)
 				sprintf(fn, "%s_%02u_%02u_%02u_data.tmp", tmpFilePrefix, portID, slaveID, chipID);
 				f = fopen(fn, "w");
 				if(f == NULL) {
-					fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-					exit(1);
+					//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+					//exit(1);
+          std::ostringstream oss;
+          oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+          throw std::runtime_error(oss.str());
 				}
 				setbuffer(f, new char[BUFFER_SIZE], BUFFER_SIZE);
 				posix_fadvise(fileno(f), 0, 0, POSIX_FADV_SEQUENTIAL);
@@ -594,8 +612,11 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 	sprintf(fName, "%s_list.tmp", tmpFilePrefix);
 	FILE *tmpListFile = fopen(fName, "r");
 	if(tmpListFile == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	
 	
@@ -640,8 +661,11 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 	for( auto it = tmp_list.begin(); it != tmp_list.end(); it++) {
 		int tmpDataFile = open(it->fileName.c_str(), O_RDONLY);
 		if(tmpDataFile == -1) {
-			fprintf(stderr, "Could not open '%s' for reading: %s\n", it->fileName.c_str(), strerror(errno));
-			exit(1);
+			//fprintf(stderr, "Could not open '%s' for reading: %s\n", it->fileName.c_str(), strerror(errno));
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Could not open '" << it->fileName << "' for reading: " << strerror(errno);
+      throw std::runtime_error(oss.str());
 		}
 		
 		if(fork() == 0) {
@@ -656,7 +680,8 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 			printf("Calibrating ASIC (%2lu %2lu %2lu)\n", portID, slaveID, chipID);
 			fflush(stdout);
 			calibrateAsic(config, gAsicID, tmpDataFile, calibrationTable, summaryFilePrefix, nBins, xMin, xMax);
-			exit(0);
+			//exit(0);
+      return;
 		} else {
 			nWorkers += 1;
 		}
@@ -667,8 +692,11 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 				nWorkers --;
 			}
 			else if (r < 0) {
-				fprintf(stderr, "Unexpected error on %s:%d: %s\n", __FILE__ , __LINE__, strerror(errno));
-				exit(1);
+				//fprintf(stderr, "Unexpected error on %s:%d: %s\n", __FILE__ , __LINE__, strerror(errno));
+				//exit(1);
+        std::ostringstream oss;
+        oss << "Unexpected error on " << __FILE__ << ":" << __LINE__ << ": " << strerror(errno);
+        throw std::runtime_error(oss.str());
 			}
 		}
 		
@@ -680,8 +708,11 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 			nWorkers --;
 		}
 		else if (r < 0) {
-			fprintf(stderr, "Unexpected error on %s:%d: %s\n", __FILE__ , __LINE__, strerror(errno));
-			exit(1);
+			//fprintf(stderr, "Unexpected error on %s:%d: %s\n", __FILE__ , __LINE__, strerror(errno));
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Unexpected error on " << __FILE__ << ":" << __LINE__ << ": " << strerror(errno);
+      throw std::runtime_error(oss.str());
 		}
 	}	
 }
@@ -692,8 +723,11 @@ static void writeCalibrationTable(CalibrationEntry *calibrationTable, const char
 	sprintf(fName, "%s.tsv", outputFilePrefix);
 	FILE *f = fopen(fName, "w");
 	if(f == NULL) {
-                fprintf(stderr, "Could not open '%s' for writing: %s\n", fName, strerror(errno));
-                exit(1);
+                //fprintf(stderr, "Could not open '%s' for writing: %s\n", fName, strerror(errno));
+                //exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for writing: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 
 	fprintf(f, "# portID\tslaveID\tchipID\tchannelID\ttacID\tp0\tp1\tp2\tp3\tp4\tp5\tp6\tp7\tp8\n");
@@ -721,8 +755,11 @@ static void deleteTemporaryFiles(const char *outputFilePrefix)
         sprintf(fName, "%s_list.tmp", outputFilePrefix);
         FILE *tmpListFile = fopen(fName, "r");
         if(tmpListFile == NULL) {
-                fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-                exit(1);
+                //fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+                //exit(1);
+          std::ostringstream oss;
+          oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+          throw std::runtime_error(oss.str());
         }
 
         unsigned long gAsicID;

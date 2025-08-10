@@ -1,5 +1,5 @@
 #include "GRAMS_TOF_Analyzer.h"
-#include "process_threshold_calibration.h" 
+#include "process_threshold_calibration.h"
 #include "process_tdc_calibration.h"
 #include "process_qdc_calibration.h"
 #include "convert_raw_to_singles.h"
@@ -8,8 +8,11 @@ bool GRAMS_TOF_Analyzer::runPetsysProcessThresholdCalibration(
     const std::string& configFile,
     const std::string& inputFilePrefix,
     const std::string& outFileName,
-    const std::string& rootFileName) {
-    return runProcessThresholdCalibration(configFile, inputFilePrefix, outFileName, rootFileName);
+    const std::string& rootFileName)
+{
+    return safeRun("runPetsysProcessThresholdCalibration",
+                   runProcessThresholdCalibration,
+                   configFile, inputFilePrefix, outFileName, rootFileName);
 }
 
 bool GRAMS_TOF_Analyzer::runPetsysProcessTdcCalibration(
@@ -19,9 +22,12 @@ bool GRAMS_TOF_Analyzer::runPetsysProcessTdcCalibration(
     const std::string& tmpFilePrefix,
     bool doSorting,
     bool keepTemporary,
-    float nominalM) 
+    float nominalM)
 {
-    return runProcessTdcCalibration(configFileName, inputFilePrefix, outputFilePrefix, tmpFilePrefix, doSorting, keepTemporary, nominalM);
+    return safeRun("runPetsysProcessTdcCalibration",
+                   runProcessTdcCalibration,
+                   configFileName, inputFilePrefix, outputFilePrefix,
+                   tmpFilePrefix, doSorting, keepTemporary, nominalM);
 }
 
 bool GRAMS_TOF_Analyzer::runPetsysProcessQdcCalibration(
@@ -31,9 +37,12 @@ bool GRAMS_TOF_Analyzer::runPetsysProcessQdcCalibration(
     const std::string& tmpFilePrefix,
     bool doSorting,
     bool keepTemporary,
-    float nominalM) 
+    float nominalM)
 {
-    return runProcessQdcCalibration(configFileName, inputFilePrefix, outputFilePrefix, tmpFilePrefix, doSorting, keepTemporary, nominalM);
+    return safeRun("runPetsysProcessQdcCalibration",
+                   runProcessQdcCalibration,
+                   configFileName, inputFilePrefix, outputFilePrefix,
+                   tmpFilePrefix, doSorting, keepTemporary, nominalM);
 }
 
 bool GRAMS_TOF_Analyzer::runPetsysConvertRawToSingles(
@@ -42,8 +51,11 @@ bool GRAMS_TOF_Analyzer::runPetsysConvertRawToSingles(
     const std::string& outputFileName,
     PETSYS::FILE_TYPE fileType,
     long long eventFractionToWrite,
-    double fileSplitTime) 
+    double fileSplitTime)
 {
-    return runConvertRawToSingles(configFileName, inputFilePrefix, outputFileName, fileType, eventFractionToWrite, fileSplitTime);
+    return safeRun("runPetsysConvertRawToSingles",
+                   runConvertRawToSingles,
+                   configFileName, inputFilePrefix, outputFileName,
+                   fileType, eventFractionToWrite, fileSplitTime);
 }
 
