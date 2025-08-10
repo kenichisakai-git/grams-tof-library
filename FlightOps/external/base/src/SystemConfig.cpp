@@ -49,8 +49,12 @@ SystemConfig *SystemConfig::fromFile(const char *configFileName, u_int64_t mask)
 	if((mask & LOAD_TDC_CALIBRATION) != 0) {
 		const char *entry = iniparser_getstring(configFile, "main:tdc_calibration_table", NULL);
 		if(entry == NULL) {
-			fprintf(stderr, "ERROR: tdc_calibration_table not specified in section 'main' of '%s'\n", configFileName);
-			exit(1);
+			//fprintf(stderr, "ERROR: tdc_calibration_table not specified in section 'main' of '%s'\n", configFileName);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "ERROR: qdc_calibration_table not specified in section 'main' of '" 
+          << configFileName << "'";
+      throw std::runtime_error(oss.str());
 		}
 		replace_variables(fn, entry, cdir);
 		loadTDCCalibration(config, fn);
@@ -62,8 +66,11 @@ SystemConfig *SystemConfig::fromFile(const char *configFileName, u_int64_t mask)
 	if ((mask & LOAD_QDC_CALIBRATION) != 0) {
 		const char *entry = iniparser_getstring(configFile, "main:qdc_calibration_table", NULL);
 		if(entry == NULL) {
-			fprintf(stderr, "ERROR: qdc_calibration_table not specified in section 'main' of '%s'\n", configFileName);
-			exit(1);
+			//fprintf(stderr, "ERROR: qdc_calibration_table not specified in section 'main' of '%s'\n", configFileName);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "ERROR: qdc_calibration_table not specified in section 'main' of '" << configFileName << "'";
+      throw std::runtime_error(oss.str());
 		}
 		replace_variables(fn, entry, cdir);
 		loadQDCCalibration(config, fn);
@@ -83,8 +90,11 @@ SystemConfig *SystemConfig::fromFile(const char *configFileName, u_int64_t mask)
 	if((mask & LOAD_MAPPING) != 0) {
 		const char *entry = iniparser_getstring(configFile, "main:channel_map", NULL);
 		if(entry == NULL) {
-			fprintf(stderr, "ERROR: channel_map not specified in section 'main' of '%s'\n", configFileName);
-			exit(1);
+			//fprintf(stderr, "ERROR: channel_map not specified in section 'main' of '%s'\n", configFileName);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "ERROR: channel_map not specified in section 'main' of '" << configFileName << "'";
+      throw std::runtime_error(oss.str());
 		}
 		replace_variables(fn, entry, cdir);
 		loadChannelMap(config, fn);
@@ -92,8 +102,11 @@ SystemConfig *SystemConfig::fromFile(const char *configFileName, u_int64_t mask)
 		
 		entry = iniparser_getstring(configFile, "main:trigger_map", NULL);
 		if(entry == NULL) {
-			fprintf(stderr, "ERROR: trigger_map not specified in section 'main' of '%s'\n", configFileName);
-			exit(1);
+			//fprintf(stderr, "ERROR: trigger_map not specified in section 'main' of '%s'\n", configFileName);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "ERROR: trigger_map not specified in section 'main' of '" << configFileName << "'";
+      throw std::runtime_error(oss.str());
 		}
 		replace_variables(fn, entry, cdir);
 		loadTriggerMap(config, fn);
@@ -226,8 +239,11 @@ void SystemConfig::loadTDCCalibration(SystemConfig *config, const char *fn)
 {
 	FILE *f = fopen(fn, "r");
 	if(f == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	char line[PATH_MAX];
 	while(fscanf(f, "%[^\n]\n", line) == 1) {
@@ -262,8 +278,11 @@ void SystemConfig::loadQDCCalibration(SystemConfig *config, const char *fn)
 {
 	FILE *f = fopen(fn, "r");
 	if(f == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	char line[PATH_MAX];
 	while(fscanf(f, "%[^\n]\n", line) == 1) {
@@ -302,8 +321,11 @@ void SystemConfig::loadEnergyCalibration(SystemConfig *config, const char *fn)
 {
 	FILE *f = fopen(fn, "r");
 	if(f == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	char line[1024];
 	while(fscanf(f, "%[^\n]\n", line) == 1) {
@@ -336,8 +358,11 @@ void SystemConfig::loadTimeOffsetCalibration(SystemConfig *config, const char *f
 {
 	FILE *f = fopen(fn, "r");
 	if(f == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	char line[PATH_MAX];
 	while(fscanf(f, "%[^\n]\n", line) == 1) {
@@ -368,8 +393,11 @@ void SystemConfig::loadChannelMap(SystemConfig *config, const char *fn)
 {
 	FILE *f = fopen(fn, "r");
 	if(f == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	char line[PATH_MAX];
 	while(fscanf(f, "%[^\n]\n", line) == 1) {
@@ -404,8 +432,11 @@ void SystemConfig::loadTriggerMap(SystemConfig *config, const char *fn)
 {
 	FILE *f = fopen(fn, "r");
 	if(f == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fn, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fn << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	char line[PATH_MAX];
 	int lineNumber = 0;
@@ -417,18 +448,28 @@ void SystemConfig::loadTriggerMap(SystemConfig *config, const char *fn)
 		int r1, r2;
 		char c;
 		if(sscanf(line, "%d\t%d\t%c\n", &r1, &r2, &c) != 3) {
-			fprintf(stderr, "Error on '%s' line %d: line should have 3 entries\n", fn, lineNumber);
-			exit(1);
+			//fprintf(stderr, "Error on '%s' line %d: line should have 3 entries\n", fn, lineNumber);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Error on '" << fn << "' line " << lineNumber << ": line should have 3 entries";
+      throw std::runtime_error(oss.str());
 		}
 		
 		if((r1 < 0) || (r1 >= MAX_TRIGGER_REGIONS) || (r2 < 0) || (r2 >= MAX_TRIGGER_REGIONS)) {
-			fprintf(stderr, "Error on '%s' line %d: trigger region number must be between 0 and %d", fn, lineNumber, MAX_TRIGGER_REGIONS);
-			exit(1);
+			//fprintf(stderr, "Error on '%s' line %d: trigger region number must be between 0 and %d", fn, lineNumber, MAX_TRIGGER_REGIONS);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Error on '" << fn << "' line " << lineNumber
+          << ": trigger region number must be between 0 and " << MAX_TRIGGER_REGIONS;
+      throw std::runtime_error(oss.str());
 		}
 		c = toupper(c);
 		if((c != 'M') && (c != 'C')) {
-			fprintf(stderr, "Error on '%s' line %d: trigger type must be M or C", fn, lineNumber);
-			exit(1);
+			//fprintf(stderr, "Error on '%s' line %d: trigger type must be M or C", fn, lineNumber);
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Error on '" << fn << "' line " << lineNumber << ": trigger type must be M or C";
+      throw std::runtime_error(oss.str());
 		}
 		
 		config->coincidenceTriggerMap[r1 * MAX_TRIGGER_REGIONS + r2] = (c == 'C');

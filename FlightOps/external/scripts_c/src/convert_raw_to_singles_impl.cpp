@@ -326,23 +326,35 @@ bool runConvertRawToSingles(const std::string& configFileName,
                             double fileSplitTime)
 {
   if (configFileName.empty() || inputFilePrefix.empty() || outputFileName.empty()) {
-    cerr << "Error: config, input, and output arguments are mandatory." << endl;
-    return false;
+    //cerr << "Error: config, input, and output arguments are mandatory." << endl;
+    //return false;
+    std::ostringstream oss;
+    oss << "Error: config, input, and output arguments are mandatory.";
+    throw std::runtime_error(oss.str());
   }
 
 	if(configFileName == NULL) {
-		fprintf(stderr, "--config must be specified\n");
-		exit(1);
+		//fprintf(stderr, "--config must be specified\n");
+		//exit(1);
+    std::ostringstream oss;
+    oss << "ERROR: --config must be specified";
+    throw std::runtime_error(oss.str());
 	}
 	
 	if(inputFilePrefix == NULL) {
-		fprintf(stderr, "-i must be specified\n");
-		exit(1);
+		//fprintf(stderr, "-i must be specified\n");
+		//exit(1);
+    std::ostringstream oss;
+    oss << "ERROR: -i must be specified";
+    throw std::runtime_error(oss.str());
 	}
 
 	if(outputFileName == NULL) {
-		fprintf(stderr, "-o must be specified\n");
-		exit(1);
+		//fprintf(stderr, "-o must be specified\n");
+		//exit(1);
+    std::ostringstream oss;
+    oss << "ERROR: -o must be specified";
+    throw std::runtime_error(oss.str());
 	}
 
 	RawReader *reader = RawReader::openFile(inputFilePrefix.c_str());

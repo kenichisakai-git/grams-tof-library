@@ -70,8 +70,11 @@ RawReader *RawReader::openFile(const char *fnPrefix)
 		sprintf(fName, "%s.idxf", fnPrefix);
 		reader->indexFile = fopen(fName, "r");
 		if(reader->indexFile == NULL)  {
-			fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-			exit(1);
+			//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+      throw std::runtime_error(oss.str());
 		}
 
 		reader->indexIsTemp = false;
@@ -81,19 +84,28 @@ RawReader *RawReader::openFile(const char *fnPrefix)
 	sprintf(fName, "%s.rawf", fnPrefix);
 	reader->dataFile = open(fName, O_RDONLY);
 	if(reader->dataFile == -1) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-                exit(1);
+		//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+    //            exit(1);
+    std::ostringstream oss;
+    oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 
 	uint64_t header[8];
 	ssize_t r = read(reader->dataFile, (void *)header, sizeof(uint64_t)*8);
 	if(r < 1) {
-		fprintf(stderr, "Could not read from '%s': %s\n", fName, strerror(errno));
-		exit(1);
+		//fprintf(stderr, "Could not read from '%s': %s\n", fName, strerror(errno));
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Could not read from '" << fName << "': " << strerror(errno);
+    throw std::runtime_error(oss.str());
 	}
 	else if (r < sizeof(uint64_t)*8) {
-		fprintf(stderr, "Read only %ld bytes from '%s', expected %lu\n", r, fName, sizeof(uint64_t)*8);
-		exit(1);
+		//fprintf(stderr, "Read only %ld bytes from '%s', expected %lu\n", r, fName, sizeof(uint64_t)*8);
+		//exit(1);
+    std::ostringstream oss;
+    oss << "Read only " << r << " bytes from '" << fName << "', expected " << sizeof(uint64_t)*8;
+    throw std::runtime_error(oss.str());
 	}
 
 	reader->frequency = header[0] & 0xFFFFFFFFUL;
@@ -108,8 +120,11 @@ RawReader *RawReader::openFile(const char *fnPrefix)
 		sprintf(fName, "%s.modf", fnPrefix);
 		FILE *modeFile = fopen(fName, "r");
 		if(modeFile == NULL) {
-			fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-			exit(1);
+			//fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+			//exit(1);
+      std::ostringstream oss;
+      oss << "Could not open '" << fName << "' for reading: " << strerror(errno);
+      throw std::runtime_error(oss.str());
 		}
 		char line[PATH_MAX];
 		while(fscanf(modeFile, "%[^\n]\n", line) == 1) {
