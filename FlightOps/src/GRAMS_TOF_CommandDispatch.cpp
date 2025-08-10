@@ -138,6 +138,57 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
         return analyzer_.runPetsysProcessThresholdCalibration(config, input, output, rootOutput);
     };
 
+    table_[TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION] = [&](const std::vector<int>& argv) {
+        Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running TDC calibration...");
+    
+        std::string config       = "tdc_config.tsv";
+        std::string inputPrefix  = "tdc_input_prefix";
+        std::string outputPrefix = "tdc_output_prefix";
+        std::string tmpPrefix    = "tdc_tmp_prefix";
+    
+        bool doSorting    = argv.size() > 0 ? (argv[0] != 0) : true;
+        bool keepTemporary= argv.size() > 1 ? (argv[1] != 0) : false;
+        float nominalM    = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;
+    
+        return analyzer_.runPetsysProcessTdcCalibration(
+            config, inputPrefix, outputPrefix, tmpPrefix, doSorting, keepTemporary, nominalM);
+    };
+    
+    table_[TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION] = [&](const std::vector<int>& argv) {
+        Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running QDC calibration...");
+    
+        std::string config       = "qdc_config.tsv";
+        std::string inputPrefix  = "qdc_input_prefix";
+        std::string outputPrefix = "qdc_output_prefix";
+        std::string tmpPrefix    = "qdc_tmp_prefix";
+    
+        bool doSorting    = argv.size() > 0 ? (argv[0] != 0) : true;
+        bool keepTemporary= argv.size() > 1 ? (argv[1] != 0) : false;
+        float nominalM    = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;
+    
+        return analyzer_.runPetsysProcessQdcCalibration(
+            config, inputPrefix, outputPrefix, tmpPrefix, doSorting, keepTemporary, nominalM);
+    };
+    
+    table_[TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES] = [&](const std::vector<int>& argv) {
+        Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Converting raw to singles...");
+    
+        std::string config       = "convert_config.tsv";
+        std::string inputPrefix  = "convert_input_prefix";
+        std::string outputFile   = "convert_output.txt";
+    
+        // Map FILE_TYPE enum to int argument; default to PETSYS::FILE_TEXT = 0 if not passed
+        PETSYS::FILE_TYPE fileType = (argv.size() > 0) ? static_cast<PETSYS::FILE_TYPE>(argv[0]) : PETSYS::FILE_TEXT;
+    
+        // eventFractionToWrite, default 1024
+        long long eventFractionToWrite = (argv.size() > 1) ? static_cast<long long>(argv[1]) : 1024;
+    
+        // fileSplitTime as double; take int argument and convert, default 0.0
+        double fileSplitTime = (argv.size() > 2) ? static_cast<double>(argv[2]) : 0.0;
+    
+        return analyzer_.runPetsysConvertRawToSingles(
+            config, inputPrefix, outputFile, fileType, eventFractionToWrite, fileSplitTime);
+    };
 }
 
 bool GRAMS_TOF_CommandDispatch::dispatch(TOFCommandCode code, const std::vector<int>& argv) const {

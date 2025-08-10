@@ -53,6 +53,7 @@ install(DIRECTORY external/petsys/  DESTINATION ${CMAKE_INSTALL_PREFIX}/petsys)
 install(DIRECTORY external/scripts/ DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
 install(DIRECTORY external/config/ DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
 
+add_subdirectory(external/base)
 add_subdirectory(external/kernel)
 add_subdirectory(external/rawdata)
 add_subdirectory(external/daqd)

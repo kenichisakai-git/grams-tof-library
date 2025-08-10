@@ -1,23 +1,28 @@
-#include <RawReader.hpp>
-#include <OrderedEventHandler.hpp>
+#include "convert_raw_to_singles.h"
+#include "FileType.h"
+
+#include <RawReader.h>
+#include <OrderedEventHandler.h>
 #include <getopt.h>
 #include <assert.h>
 #include <math.h>
+#include <iostream>
 #include <string>
-#include <SystemConfig.hpp>
-#include <CoarseSorter.hpp>
-#include <ProcessHit.hpp>
-#include <SimpleGrouper.hpp>
-#include <CoincidenceGrouper.hpp>
+#include <SystemConfig.h>
+#include <CoarseSorter.h>
+#include <ProcessHit.h>
+#include <SimpleGrouper.h>
+#include <CoincidenceGrouper.h>
 
 #include <boost/lexical_cast.hpp>
 
 #include <TFile.h>
 #include <TTree.h>
 
+using namespace std;
 using namespace PETSYS;
 
-enum FILE_TYPE { FILE_TEXT, FILE_BINARY, FILE_ROOT, FILE_NULL };
+//enum FILE_TYPE { FILE_TEXT, FILE_BINARY, FILE_ROOT, FILE_NULL };
 
 class DataFileWriter {
 private:
@@ -63,7 +68,7 @@ private:
 	} __attribute__((__packed__));
 	
 public:
-	DataFileWriter(char *fName, double frequency, FILE_TYPE fileType, int eventFractionToWrite, float splitTime) {
+	DataFileWriter(const char *fName, double frequency, FILE_TYPE fileType, int eventFractionToWrite, float splitTime) {
 		this->fName = std::string(fName);
 		this->frequency = frequency;
 		this->fileType = (strcmp(fName, "/dev/null") != 0) ? fileType : FILE_NULL;
@@ -313,55 +318,17 @@ void displayUsage(char *argv0)
 	printf("Usage: %s --config <config_file> -i <input_file_prefix> -o <output_file_prefix> [optional arguments]\n", argv0);
 }
 
-int main(int argc, char *argv[])
+bool runConvertRawToSingles(const std::string& configFileName,
+                            const std::string& inputFilePrefix,
+                            const std::string& outputFileName,
+                            FILE_TYPE fileType,
+                            long long eventFractionToWrite,
+                            double fileSplitTime)
 {
-	char *configFileName = NULL;
-        char *inputFilePrefix = NULL;
-        char *outputFileName = NULL;
-	FILE_TYPE fileType = FILE_TEXT;
-	long long eventFractionToWrite = 1024;
-	double fileSplitTime = 0.0;
-
-
-        static struct option longOptions[] = {
-                { "help", no_argument, 0, 0 },
-                { "config", required_argument, 0, 0 },
-		{ "writeBinary", no_argument, 0, 0 },
-		{ "writeRoot", no_argument, 0, 0 },
-		{ "writeFraction", required_argument, 0, 0},
-		{ "splitTime", required_argument, 0, 0}
-		
-        };
-
-        while(true) {
-                int optionIndex = 0;
-                int c = getopt_long(argc, argv, "i:o:c:",longOptions, &optionIndex);
-
-                if(c == -1) break;
-                else if(c != 0) {
-                        // Short arguments
-                        switch(c) {
-                        case 'i':       inputFilePrefix = optarg; break;
-                        case 'o':       outputFileName = optarg; break;
-			default:        displayUsage(argv[0]); exit(1);
-			}
-		}
-		else if(c == 0) {
-			switch(optionIndex) {
-			case 0:		displayHelp(argv[0]); exit(0); break;
-                        case 1:		configFileName = optarg; break;
-			case 2:		fileType = FILE_BINARY; break;
-			case 3:		fileType = FILE_ROOT; break;
-			case 4:		eventFractionToWrite = round(1024 *boost::lexical_cast<float>(optarg) / 100.0); break;
-			case 5:		fileSplitTime = boost::lexical_cast<double>(optarg); break;
-
-			default:	displayUsage(argv[0]); exit(1);
-			}
-		}
-		else {
-			assert(false);
-		}
-	}
+  if (configFileName.empty() || inputFilePrefix.empty() || outputFileName.empty()) {
+    cerr << "Error: config, input, and output arguments are mandatory." << endl;
+    return false;
+  }
 
 	if(configFileName == NULL) {
 		fprintf(stderr, "--config must be specified\n");
@@ -378,16 +345,16 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	RawReader *reader = RawReader::openFile(inputFilePrefix);
+	RawReader *reader = RawReader::openFile(inputFilePrefix.c_str());
 	
 	// If data was taken in ToT mode, do not attempt to load these files
 	unsigned long long mask = SystemConfig::LOAD_ALL;
 	if(reader->isTOT()) {
 		mask ^= (SystemConfig::LOAD_QDC_CALIBRATION | SystemConfig::LOAD_ENERGY_CALIBRATION);
 	}
-	SystemConfig *config = SystemConfig::fromFile(configFileName, mask);
+	SystemConfig *config = SystemConfig::fromFile(configFileName.c_str(), mask);
 	
-	DataFileWriter *dataFileWriter = new DataFileWriter(outputFileName, reader->getFrequency(),  fileType, eventFractionToWrite, fileSplitTime);
+	DataFileWriter *dataFileWriter = new DataFileWriter(outputFileName.c_str(), reader->getFrequency(),  fileType, eventFractionToWrite, fileSplitTime);
 	
 	int stepIndex = 0;
 	while(reader->getNextStep()) {
