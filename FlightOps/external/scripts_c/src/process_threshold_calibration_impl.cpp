@@ -30,7 +30,7 @@ using namespace std;
 using ChannelKey = tuple<int, int, int, int>;
 using ChipKey = tuple<int, int, int>;
 
-TF1* createSigmoid() {
+static TF1* createSigmoid() {
     TF1* fSigmoid = new TF1("fSigmoid", "[0]*ROOT::Math::normal_cdf(x,[1],[2])", 0, 64);
     fSigmoid->SetParName(0, "C");
     fSigmoid->SetParName(1, "#sigma");
@@ -39,7 +39,7 @@ TF1* createSigmoid() {
     return fSigmoid;
 }
 
-vector<string> normalizeAndSplit(string line) {
+static vector<string> normalizeAndSplit(string line) {
     line = regex_replace(line, regex("\\s*#.*"), "");
     line = regex_replace(line, regex("^\\s*"), "");
     line = regex_replace(line, regex("\\s*$"), "");
@@ -56,7 +56,7 @@ vector<string> normalizeAndSplit(string line) {
     return result;
 }
 
-pair<double, double> getBaselineAndNoise(TProfile* profile, TF1* fSigmoid) {
+static pair<double, double> getBaselineAndNoise(TProfile* profile, TF1* fSigmoid) {
     int lowBin = profile->FindFirstBinAbove(0.1);
     int highBin = profile->FindFirstBinAbove(0.9);
     double low = profile->GetBinCenter(lowBin) - 0.5;

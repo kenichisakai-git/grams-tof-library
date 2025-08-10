@@ -34,19 +34,25 @@ set_target_properties(shm_raw_py PROPERTIES
     PREFIX ""
     OUTPUT_NAME shm_raw  # final output: shm_raw.so
 )
-target_link_libraries(shm_raw_py PRIVATE rt)
-
-# C++ shared library
-add_library(GramsTofRawDataLib SHARED ${SOURCES})
-
 target_include_directories(shm_raw_py PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/FlightOps>
 )
+target_link_libraries(shm_raw_py PUBLIC rt)
+target_link_libraries(shm_raw_py PUBLIC GramsTofBaseLib)
+
+# C++ shared library
+add_library(GramsTofRawDataLib SHARED ${SOURCES})
 target_include_directories(GramsTofRawDataLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/FlightOps>
 )
+target_link_libraries(GramsTofRawDataLib PUBLIC rt)
+target_link_libraries(GramsTofRawDataLib PUBLIC GramsTofBaseLib)
+
+
+add_executable(write_raw.exe tools/write_raw.cpp)
+target_link_libraries(write_raw.exe PRIVATE GramsTofRawDataLib)
 
 install(TARGETS shm_raw_py
     LIBRARY DESTINATION petsys
@@ -57,5 +63,9 @@ install(TARGETS GramsTofRawDataLib
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
+)
+
+install(TARGETS write_raw.exe
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 

@@ -1,3 +1,5 @@
+#include "process_tdc_calibration.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -15,8 +17,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <shm_raw.hpp>
-#include <event_decode.hpp>
+#include <shm_raw.h>
+#include <event_decode.h>
 
 #include <boost/random.hpp>
 #include <boost/nondet_random.hpp>
@@ -36,36 +38,37 @@ using namespace PETSYS;
 // Use 128K file buffers
 #define BUFFER_SIZE	4096
 
+namespace {
+  struct RawCalibrationData{
+	  uint64_t eventWord;
+	  int freq;
+  };
 
-struct RawCalibrationData{
-	uint64_t eventWord;
-	int freq;
-};
+  struct CalibrationData{
+	  unsigned long gid;
+	  unsigned short coarse;
+	  unsigned short fine;
+	  int freq;
+	  float phase;
+  };
 
-struct CalibrationData{
-	unsigned long gid;
-	unsigned short coarse;
-	unsigned short fine;
-	int freq;
-	float phase;
-};
+  // TODO Put this somewhere else
+  const unsigned long MAX_N_ASIC = 32*32*64;
+  const unsigned long MAX_N_TAC = MAX_N_ASIC * 64 * 2 * 4;
 
-// TODO Put this somewhere else
-const unsigned long MAX_N_ASIC = 32*32*64;
-const unsigned long MAX_N_TAC = MAX_N_ASIC * 64 * 2 * 4;
-
-struct CalibrationEntry {
-	float t0;
-	float tEdge;
-	float a0;
-	float a1;
-	float a2;
-	bool valid;
-};
+  struct CalibrationEntry {
+	  float t0;
+	  float tEdge;
+	  float a0;
+	  float a1;
+	  float a2;
+	  bool valid;
+  };
+}
 
 
-void sortData(char *inputFilePrefix, char *tmpFilePrefix);
-void calibrateAsic(
+static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix);
+static void calibrateAsic(
 	unsigned long gAsicID,
 	int linearityDataFile, int linearityNbins, float linearityRangeMinimum, float linearityRangeMaximum,
 	CalibrationEntry *calibrationTable,
@@ -73,105 +76,66 @@ void calibrateAsic(
 	char *summaryFilePrefix
 );
 
-void calibrateAllAsics(int linearityNbins, float linearityRangeMinimum, float linearityRangeMaximum,
-		CalibrationEntry *calibrationTable,  float nominalM, char *outputFilePrefix, char *tmpFilePrefix);
+static void calibrateAllAsics(int linearityNbins, float linearityRangeMinimum, float linearityRangeMaximum,
+		CalibrationEntry *calibrationTable,  float nominalM, const char *outputFilePrefix, const char *tmpFilePrefix);
 		
-void adjustCalibrationTable(CalibrationEntry *calibrationTable);
+static void adjustCalibrationTable(CalibrationEntry *calibrationTable);
 
-void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix);
+static void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix);
 
-void deleteTemporaryFiles(const char *tmpFilePrefix);
+static void deleteTemporaryFiles(const char *tmpFilePrefix);
 
-void displayUsage() {
+static void displayUsage() {
 }
 
-int main(int argc, char *argv[])
+bool runProcessTdcCalibration(const std::string& configFileName,
+                              const std::string& inputFilePrefix,
+                              const std::string& outputFilePrefix,
+                              const std::string& tmpFilePrefix,
+                              bool doSorting,
+                              bool keepTemporary,
+                              float nominalM)
 {
-	float nominalM = 200;
-	char *configFileName = NULL;
-	char *inputFilePrefix = NULL;
-	char *outputFilePrefix = NULL;
-	char *tmpFilePrefix = NULL;
-	bool doSorting = true;
-	bool keepTemporary = false;
- 
-        static struct option longOptions[] = {
-                { "help", no_argument, 0, 0 },
-                { "config", required_argument, 0, 0 },
-                { "no-sorting", no_argument, 0, 0 },
-                { "keep-temporary", no_argument, 0, 0 },
-                { "tmp-prefix", required_argument, 0, 0 }
-        };
+  char fName[1024];
+  sprintf(fName, "%s.bins", inputFilePrefix.c_str());
+  FILE *binsFile = fopen(fName, "r");
+  if(binsFile == NULL) {
+    fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
+    exit(1);
+  }
+  int nBins;
+  float xMin, xMax;
+  if(fscanf(binsFile, "%d\t%f\t%f\n", &nBins, &xMin, &xMax) != 3) {
+    fprintf(stderr, "Error parsing %s\n", fName);
+    exit(1);
+  }
 
-	while(true) {
-		int optionIndex = 0;
-                int c = getopt_long(argc, argv, "i:o:c:",longOptions, &optionIndex);
 
-		if(c == -1) break;
-		else if(c != 0) {
-			// Short arguments
-			switch(c) {
-			case 'i':	inputFilePrefix = optarg; break;
-			case 'o':	outputFilePrefix = optarg; break;
-			default:	displayUsage(); exit(1);
-			}
-		}
-		else if(c == 0) {
-			switch(optionIndex) {
-			case 0: 	displayUsage(); exit(0); break;
-			case 1:		configFileName = optarg; break;
-			case 2:		doSorting = false; break;
-			case 3:		keepTemporary = true; break;
-			case 4:		tmpFilePrefix = optarg; break;
-			default:	displayUsage(); exit(1);
-			}
-		}
-		else {
-			assert(false);
-		}
+  CalibrationEntry *calibrationTable = (CalibrationEntry *)mmap(NULL, sizeof(CalibrationEntry)*MAX_N_TAC, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+  for(int gid = 0; gid < MAX_N_TAC; gid++) {
+    calibrationTable[gid].valid = false;
+    calibrationTable[gid].t0 = 0.0;
+    calibrationTable[gid].tEdge = 0.0;
+    calibrationTable[gid].a0 = 0.0;
+    calibrationTable[gid].a1 = 0.0;
+    calibrationTable[gid].a2 = 0.0;
+  }
 
-	}
-	if(tmpFilePrefix == NULL) tmpFilePrefix = outputFilePrefix;
+  if(doSorting) {
+    sortData(inputFilePrefix.c_str(), tmpFilePrefix.c_str());
+  }
+  calibrateAllAsics(nBins, xMin, xMax, calibrationTable, nominalM, outputFilePrefix.c_str(), tmpFilePrefix.c_str());
+  adjustCalibrationTable(calibrationTable);
+  writeCalibrationTable(calibrationTable, outputFilePrefix.c_str());
+  if(!keepTemporary) {
+    deleteTemporaryFiles(tmpFilePrefix.c_str());
+  }
 
-	char fName[1024];
-	sprintf(fName, "%s.bins", inputFilePrefix);
-	FILE *binsFile = fopen(fName, "r");
-	if(binsFile == NULL) {
-		fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
-		exit(1);
-	}
-	int nBins;
-	float xMin, xMax;
-	if(fscanf(binsFile, "%d\t%f\t%f\n", &nBins, &xMin, &xMax) != 3) {
-		fprintf(stderr, "Error parsing %s\n", fName);
-		exit(1);
-	}
-	
-	
-	CalibrationEntry *calibrationTable = (CalibrationEntry *)mmap(NULL, sizeof(CalibrationEntry)*MAX_N_TAC, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
-	for(int gid = 0; gid < MAX_N_TAC; gid++) {
-		calibrationTable[gid].valid = false;
-		calibrationTable[gid].t0 = 0.0;
-		calibrationTable[gid].tEdge = 0.0;
-		calibrationTable[gid].a0 = 0.0;
-		calibrationTable[gid].a1 = 0.0;
-		calibrationTable[gid].a2 = 0.0;
-	}
-
-	if(doSorting) {
-		sortData(inputFilePrefix, tmpFilePrefix);
-	}
-	calibrateAllAsics(nBins, xMin, xMax, calibrationTable, nominalM, outputFilePrefix, tmpFilePrefix);
-	adjustCalibrationTable(calibrationTable);
-	writeCalibrationTable(calibrationTable, outputFilePrefix);
-	if(!keepTemporary) {
-		deleteTemporaryFiles(tmpFilePrefix);
-	}
-
-	return 0;
+  return 0;
 }
 
-void sortData(char *inputFilePrefix, char *tmpFilePrefix)
+
+static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix)
 {
 	printf("Sorting data into temporary files...\n");
 	fflush(stdout);
@@ -216,13 +180,24 @@ void sortData(char *inputFilePrefix, char *tmpFilePrefix)
 	long startOffset, endOffset;
 	float step1, step2;
 
+  long long tmp1, tmp2;
+  while(fscanf(indexFile, "%ld %ld %lld %lld %f %f\n",
+               &startOffset, &endOffset, &tmp1, &tmp2, &step1, &step2) == 6) {
+    // Use startOffset, endOffset, step1, step2 as needed
+    // Ignore tmp1 and tmp2 manually
 
-	while(fscanf(indexFile, "%ld %ld %*lld %*lld %f %f\n", &startOffset, &endOffset, &step1, &step2) == 4) {
+	  //while(fscanf(indexFile, "%ld %ld %*lld %*lld %f %f\n", &startOffset, &endOffset, &step1, &step2) == 4) {
 		fseek(dataFile, startOffset, SEEK_SET);
 		long nCalData = (endOffset - startOffset)/sizeof(RawCalibrationData);
 		RawCalibrationData *tmpRawCalDataBlock = new RawCalibrationData[nCalData];
 		
-		fread(tmpRawCalDataBlock, sizeof(RawCalibrationData), nCalData, dataFile);	
+		//fread(tmpRawCalDataBlock, sizeof(RawCalibrationData), nCalData, dataFile);	
+    size_t nRead = fread(tmpRawCalDataBlock, sizeof(RawCalibrationData), nCalData, dataFile);
+    if (nRead != nCalData) {
+        // Handle error: unexpected end of file or read error
+        fprintf(stderr, "Error: fread read %zu elements, expected %zu\n", nRead, nCalData);
+    }
+
 		for (int i = 0; i < nCalData; i++) {
 			
 			RawEventWord eWord(tmpRawCalDataBlock[i].eventWord);   
@@ -291,7 +266,7 @@ static const int TDC_PERIOD = 1;
 static const float TDC_SYNC_OFFSET = 0.5;
 
 static const int nPar1 = 3;
-const char * paramNames1[nPar1] =  { "x0", "b", "m" };
+static const char * paramNames1[nPar1] =  { "x0", "b", "m" };
 static Double_t periodicF1 (Double_t *xx, Double_t *pp)
 {
 	float x = fmod(1024.0 + xx[0] - pp[0], TDC_PERIOD);	
@@ -300,7 +275,7 @@ static Double_t periodicF1 (Double_t *xx, Double_t *pp)
 
 
 static const int nPar2 = 4;
-const char *paramNames2[nPar2] = {  "tEdge", "a0", "a1", "a2" };
+static const char *paramNames2[nPar2] = {  "tEdge", "a0", "a1", "a2" };
 static Double_t periodicF2 (Double_t *xx, Double_t *pp)
 {
 	double tDelay = xx[0];	
@@ -316,7 +291,7 @@ static Double_t periodicF2 (Double_t *xx, Double_t *pp)
 
 
 
-void calibrateAsic(
+static void calibrateAsic(
 	unsigned long gAsicID,
 	int linearityDataFile, int linearityNbins, float linearityRangeMinimum, float linearityRangeMaximum,
 	CalibrationEntry *calibrationTable,
@@ -329,7 +304,11 @@ void calibrateAsic(
 	TCanvas *tmp0 = new TCanvas();
 	
 	char fName[1024];
-	sprintf(fName, "%s.root", summaryFilePrefix);
+	//sprintf(fName, "%s.root", summaryFilePrefix);
+  int n1 = snprintf(fName, sizeof(fName), "%s.root", summaryFilePrefix);
+  if (n1 < 0 || n1 >= (int)sizeof(fName)) {
+     fprintf(stderr, "Filename too long, truncation occurred!\n");
+  }
 	TFile *rootFile = new TFile(fName, "RECREATE");
 
 	
@@ -888,7 +867,11 @@ void calibrateAsic(
 		hResolution->Draw("HIST");
 		
 	}
-	sprintf(fName, "%s.svg", summaryFilePrefix);
+	//sprintf(fName, "%s.svg", summaryFilePrefix);
+  int n2 = snprintf(fName, sizeof(fName), "%s.svg", summaryFilePrefix);
+  if (n2 < 0 || n2 >= (int)sizeof(fName)) {
+    fprintf(stderr, "Filename too long, truncation occurred!\n");
+  }
 	c->SaveAs(fName);
 	delete c;
 
@@ -898,8 +881,8 @@ void calibrateAsic(
 	delete tmp0;
 }
 
-void calibrateAllAsics(int linearityNbins, float linearityRangeMinimum, float linearityRangeMaximum,
-		       CalibrationEntry *calibrationTable, float nominalM, char *outputFilePrefix, char *tmpFilePrefix)
+static void calibrateAllAsics(int linearityNbins, float linearityRangeMinimum, float linearityRangeMaximum,
+		       CalibrationEntry *calibrationTable, float nominalM, const char *outputFilePrefix, const char *tmpFilePrefix)
 {
 	char fName[1024];
 	sprintf(fName, "%s_list.tmp", tmpFilePrefix);
@@ -1000,7 +983,7 @@ void calibrateAllAsics(int linearityNbins, float linearityRangeMinimum, float li
 	
 }
 
-void adjustCalibrationTable(CalibrationEntry *calibrationTable)
+static void adjustCalibrationTable(CalibrationEntry *calibrationTable)
 {
 	for(unsigned long branchID = 0; branchID < 2; branchID++) {
 		double sum = 0;
@@ -1023,7 +1006,7 @@ void adjustCalibrationTable(CalibrationEntry *calibrationTable)
 	}
 }
 
-void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix)
+static void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix)
 {
 	char fName[1024];
 	sprintf(fName, "%s.tsv", outputFilePrefix);
@@ -1055,7 +1038,7 @@ void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outpu
 	fclose(f);
 }
 
-void deleteTemporaryFiles(const char *tmpFilePrefix)
+static void deleteTemporaryFiles(const char *tmpFilePrefix)
 {
         char fName[1024];
         sprintf(fName, "%s_list.tmp", tmpFilePrefix);

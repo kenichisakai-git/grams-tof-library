@@ -1,3 +1,5 @@
+#include "process_qdc_calibration.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -15,9 +17,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <shm_raw.hpp>
-#include <event_decode.hpp>
-#include <SystemConfig.hpp>
+#include <shm_raw.h>
+#include <event_decode.h>
+#include <SystemConfig.h>
 
 
 #include <boost/random.hpp>
@@ -39,126 +41,81 @@ using namespace PETSYS;
 
 #define BUFFER_SIZE	4096
 
-struct RawCalibrationData{
-	uint64_t eventWord;
-	int freq;
-};
+namespace {
 
-struct CalibrationData{
-	unsigned long gid;
-	unsigned short tcoarse;
-	unsigned short tfine;
-	unsigned short ecoarse;
-	unsigned short qfine;	
-	int freq;
-	bool saturation;
-	
-	float getTime (SystemConfig *config){
-		float time, q_T;
-		unsigned channelID = (gid >> 2);
-		unsigned tacID = (gid >> 0) % 4;
-		SystemConfig::ChannelConfig &cc = config->getChannelConfig(channelID);
-		SystemConfig::TacConfig &ct = cc.tac_T[tacID];
-		float delta = (ct.a1 * ct.a1) - (4.0f * (ct.a0 - tfine) * ct.a2);
-		if(delta<0){
-			time = tcoarse;
-		}
-		else{
-			q_T =  ( -ct.a1 + sqrtf(delta) ) / (2.0f * ct.a2) ;	
-		        time = tcoarse - q_T - ct.t0;
-		}
-		return time;
-	};
-};
+  struct RawCalibrationData{
+  	uint64_t eventWord;
+  	int freq;
+  };
+  
+  struct CalibrationData{
+  	unsigned long gid;
+  	unsigned short tcoarse;
+  	unsigned short tfine;
+  	unsigned short ecoarse;
+  	unsigned short qfine;	
+  	int freq;
+  	bool saturation;
+  	
+  	float getTime (SystemConfig *config){
+  		float time, q_T;
+  		unsigned channelID = (gid >> 2);
+  		unsigned tacID = (gid >> 0) % 4;
+  		SystemConfig::ChannelConfig &cc = config->getChannelConfig(channelID);
+  		SystemConfig::TacConfig &ct = cc.tac_T[tacID];
+  		float delta = (ct.a1 * ct.a1) - (4.0f * (ct.a0 - tfine) * ct.a2);
+  		if(delta<0){
+  			time = tcoarse;
+  		}
+  		else{
+  			q_T =  ( -ct.a1 + sqrtf(delta) ) / (2.0f * ct.a2) ;	
+  		        time = tcoarse - q_T - ct.t0;
+  		}
+  		return time;
+  	};
+  };
 
+  // TODO Put this somewhere else
+  const unsigned long MAX_N_ASIC = 32*32*64;
+  const unsigned long MAX_N_QAC = MAX_N_ASIC * 64 * 4;
 
-// TODO Put this somewhere else
-const unsigned long MAX_N_ASIC = 32*32*64;
-const unsigned long MAX_N_QAC = MAX_N_ASIC * 64 * 4;
-
-struct CalibrationEntry {
-	float p0;
-	float p1;
-	float p2;
-	float p3;
-	float p4;
-        float p5;
-	float p6;
-	float p7;
-	float p8;
-        float p9;
-        float xMin;
-	float xMax;
-	float xMax100;
-	bool valid;
-};
-
-
-
-void sortData(char *inputFilePrefix, char *tmpFilePrefix);
-void calibrateAsic(SystemConfig *config, unsigned long gAsicID, int dataFile, CalibrationEntry *calibrationTable, char *summaryFilePrefix, int nBins, float xMin, float xMax);
-
-void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibrationTable, char *outputFilePrefix, int nBins, float xMin, float xMax, char *tmpFilePrefix);
-void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix);
-void deleteTemporaryFiles(const char *outputFilePrefix);
-
-void displayUsage() {
+  struct CalibrationEntry {
+  	float p0;
+  	float p1;
+  	float p2;
+  	float p3;
+  	float p4;
+          float p5;
+  	float p6;
+  	float p7;
+  	float p8;
+          float p9;
+          float xMin;
+  	float xMax;
+  	float xMax100;
+  	bool valid;
+  };
 }
 
-int main(int argc, char *argv[])
+static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix);
+static void calibrateAsic(SystemConfig *config, unsigned long gAsicID, int dataFile, CalibrationEntry *calibrationTable, char *summaryFilePrefix, int nBins, float xMin, float xMax);
+
+static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibrationTable, const char *outputFilePrefix, int nBins, float xMin, float xMax, const char *tmpFilePrefix);
+static void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix);
+static void deleteTemporaryFiles(const char *outputFilePrefix);
+
+ bool runProcessQdcCalibration(const std::string& configFileName,
+                              const std::string& inputFilePrefix,
+                              const std::string& outputFilePrefix,
+                              const std::string& tmpFilePrefix,
+                              bool doSorting,
+                              bool keepTemporary,
+                              float nominalM)
 {
-	float nominalM = 200;
-	char *configFileName = NULL;
-	char *inputFilePrefix = NULL;
-	char *outputFilePrefix = NULL;
-	char *tmpFilePrefix = NULL;
-	bool doSorting = true;
-	bool keepTemporary = false;
-
-        static struct option longOptions[] = {
-                { "help", no_argument, 0, 0 },
-                { "config", required_argument, 0, 0 },
-                { "no-sorting", no_argument, 0, 0 },
-                { "keep-temporary", no_argument, 0, 0 },
-		{ "tmp-prefix", required_argument, 0, 0 }
-        };
-
-	while(true) {
-		int optionIndex = 0;
-                int c = getopt_long(argc, argv, "i:o:c:",longOptions, &optionIndex);
-
-		if(c == -1) break;
-		else if(c != 0) {
-			// Short arguments
-			switch(c) {
-			case 'i':	inputFilePrefix = optarg; break;
-			case 'o':	outputFilePrefix = optarg; break;
-			default:	displayUsage(); exit(1);
-			}
-		}
-		else if(c == 0) {
-			switch(optionIndex) {
-			case 0: 	displayUsage(); exit(0); break;
-			case 1:		configFileName = optarg; break;
-			case 2:		doSorting = false; break;
-			case 3:		keepTemporary = true; break;
-			case 4:		tmpFilePrefix = optarg; break;
-			default:	displayUsage(); exit(1);
-			}
-		}
-		else {
-			assert(false);
-		}
-
-	}
-	if(tmpFilePrefix == NULL)
-		tmpFilePrefix = outputFilePrefix;
-		
-	SystemConfig *config = SystemConfig::fromFile(configFileName, SystemConfig::LOAD_TDC_CALIBRATION);
-	
+  SystemConfig *config = SystemConfig::fromFile(configFileName.c_str(), SystemConfig::LOAD_TDC_CALIBRATION);
 
 	char fName[1024];
-	sprintf(fName, "%s.bins", inputFilePrefix);
+	sprintf(fName, "%s.bins", inputFilePrefix.c_str());
 	FILE *binsFile = fopen(fName, "r");
 	if(binsFile == NULL) {
 		fprintf(stderr, "Could not open '%s' for reading: %s\n", fName, strerror(errno));
@@ -175,20 +132,20 @@ int main(int argc, char *argv[])
 	for(int gid = 0; gid < MAX_N_QAC; gid++) calibrationTable[gid].valid = false;
 
 	if(doSorting) {
-		sortData(inputFilePrefix, tmpFilePrefix);
+		sortData(inputFilePrefix.c_str(), tmpFilePrefix.c_str());
 	}
- 	calibrateAllAsics(config, calibrationTable, tmpFilePrefix, nBins, xMin, xMax, tmpFilePrefix);
+ 	calibrateAllAsics(config, calibrationTable, tmpFilePrefix.c_str(), nBins, xMin, xMax, tmpFilePrefix.c_str());
 
-	writeCalibrationTable(calibrationTable, outputFilePrefix);
+	writeCalibrationTable(calibrationTable, outputFilePrefix.c_str());
 	if(!keepTemporary) {
-		deleteTemporaryFiles(tmpFilePrefix);
+		deleteTemporaryFiles(tmpFilePrefix.c_str());
 	}
 
 	return 0;
 }
 
 
-void sortData(char *inputFilePrefix, char *tmpFilePrefix)
+static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix)
 {
 	
 	printf("Sorting data into temporary files...\n");
@@ -234,13 +191,22 @@ void sortData(char *inputFilePrefix, char *tmpFilePrefix)
 	long startOffset, endOffset;
 	float step1, step2;
 
-
-	while(fscanf(indexFile, "%ld %ld %*lld %*lld %f %f\n", &startOffset, &endOffset, &step1, &step2) == 4) {
+  long long tmp1, tmp2;
+  while(fscanf(indexFile, "%ld %ld %lld %lld %f %f\n", &startOffset, &endOffset, &tmp1, &tmp2, &step1, &step2) == 6) {
+    // process startOffset, endOffset, step1, step2
+    // ignore tmp1 and tmp2
+	//while(fscanf(indexFile, "%ld %ld %*lld %*lld %f %f\n", &startOffset, &endOffset, &step1, &step2) == 4) {
 		fseek(dataFile, startOffset, SEEK_SET);
 		long nCalData = (endOffset - startOffset)/sizeof(RawCalibrationData);
 		RawCalibrationData *tmpRawCalDataBlock = new RawCalibrationData[nCalData];
 		
-		fread(tmpRawCalDataBlock, sizeof(RawCalibrationData), nCalData, dataFile);	
+		//fread(tmpRawCalDataBlock, sizeof(RawCalibrationData), nCalData, dataFile);	
+    size_t nRead = fread(tmpRawCalDataBlock, sizeof(RawCalibrationData), nCalData, dataFile);
+    if (nRead != nCalData) {
+        // Handle error: unexpected end of file or read error
+        fprintf(stderr, "Error: fread read %zu elements, expected %zu\n", nRead, nCalData);
+    }
+
 		for (int i = 0; i < nCalData; i++) {
 			
 			RawEventWord eWord(tmpRawCalDataBlock[i].eventWord);   
@@ -295,7 +261,7 @@ void sortData(char *inputFilePrefix, char *tmpFilePrefix)
 	fclose(tmpListFile);
 }
 
-void calibrateAsic(
+static void calibrateAsic(
         SystemConfig *config, 
 	unsigned long gAsicID,
 	int dataFile,
@@ -309,7 +275,12 @@ void calibrateAsic(
 	TCanvas *tmp0 = new TCanvas();
 	
 	char fName[1024];
-	sprintf(fName, "%s.root", summaryFilePrefix);
+	//sprintf(fName, "%s.root", summaryFilePrefix);
+  int n1 = snprintf(fName, sizeof(fName), "%s.root", summaryFilePrefix);
+  if (n1 < 0 || n1 >= (int)sizeof(fName)) {
+     fprintf(stderr, "Filename too long, truncation occurred!\n");
+  }
+
 	TFile *rootFile = new TFile(fName, "RECREATE");
 
 	
@@ -601,7 +572,12 @@ void calibrateAsic(
 	hMax100Time->SetLineColor(kRed);
 	hMax100Time->Draw("HISTO,SAME");
 
-	sprintf(fName, "%s.svg", summaryFilePrefix);
+	//sprintf(fName, "%s.svg", summaryFilePrefix);
+  int n2 = snprintf(fName, sizeof(fName), "%s.svg", summaryFilePrefix); 
+  if (n2 < 0 || n2 >= (int)sizeof(fName)) {
+    fprintf(stderr, "Filename too long, truncation occurred!\n");
+  }
+
 	c->SaveAs(fName);
 	delete c;
 
@@ -612,7 +588,7 @@ void calibrateAsic(
 	delete tmp0;	
 }
 
-void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibrationTable, char *outputFilePrefix, int nBins, float xMin, float xMax, char *tmpFilePrefix)
+static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibrationTable, const char *outputFilePrefix, int nBins, float xMin, float xMax, const char *tmpFilePrefix)
 {
 	char fName[1024];
 	sprintf(fName, "%s_list.tmp", tmpFilePrefix);
@@ -710,7 +686,7 @@ void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibrationTable,
 	}	
 }
 
-void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix)
+static void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outputFilePrefix)
 {
 	char fName[1024];
 	sprintf(fName, "%s.tsv", outputFilePrefix);
@@ -739,7 +715,7 @@ void writeCalibrationTable(CalibrationEntry *calibrationTable, const char *outpu
 	fclose(f);
 }
 
-void deleteTemporaryFiles(const char *outputFilePrefix) 
+static void deleteTemporaryFiles(const char *outputFilePrefix) 
 {
         char fName[1024];
         sprintf(fName, "%s_list.tmp", outputFilePrefix);
