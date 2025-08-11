@@ -69,6 +69,8 @@ public:
                                   bool hwTrigger,
                                   const std::string& paramTable);
 
+    static std::string resolveScriptPath(const std::string& scriptName);
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;

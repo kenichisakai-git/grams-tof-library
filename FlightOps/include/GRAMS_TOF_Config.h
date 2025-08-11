@@ -5,16 +5,27 @@
 
 class GRAMS_TOF_Config {
 public:
-    bool load(const std::string& filename);
+    static GRAMS_TOF_Config& instance();
+
+    void setConfigFile(const std::string& filename);
 
     std::string getString(const std::string& section, const std::string& key) const;
+    std::string getFileStem(const std::string& section, const std::string& key) const;
     int getInt(const std::string& section, const std::string& key) const;
     double getDouble(const std::string& section, const std::string& key) const;
 
+    const std::string& getConfigFilePath() const;
+
 private:
-    using Section = std::unordered_map<std::string, std::string>;
-    std::unordered_map<std::string, Section> data_;
+    GRAMS_TOF_Config() = default;
+    GRAMS_TOF_Config(const GRAMS_TOF_Config&) = delete;
+    GRAMS_TOF_Config& operator=(const GRAMS_TOF_Config&) = delete;
+
+    bool load(const std::string& filename);
+
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> data_;
     std::string configDir_;
+    std::string configFilePath_;
 
     std::string substituteVariables(const std::string& value) const;
 };

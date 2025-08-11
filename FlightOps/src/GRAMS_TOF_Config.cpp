@@ -1,9 +1,21 @@
 #include "GRAMS_TOF_Config.h"
-#include "INIReader.h"  // Assumes inih is in your include path
+#include "INIReader.h"
 
 #include <cstdlib>
 #include <stdexcept>
 #include <filesystem>
+
+GRAMS_TOF_Config& GRAMS_TOF_Config::instance() {
+    static GRAMS_TOF_Config instance;
+    return instance;
+}
+
+void GRAMS_TOF_Config::setConfigFile(const std::string& filename) {
+    if (!load(filename)) {
+        throw std::runtime_error("Failed to load config file: " + filename);
+    }
+    configFilePath_ = filename; 
+}
 
 bool GRAMS_TOF_Config::load(const std::string& filename) {
     configDir_ = std::filesystem::path(filename).parent_path().string();
@@ -13,6 +25,7 @@ bool GRAMS_TOF_Config::load(const std::string& filename) {
         return false;
     }
 
+    data_.clear();
     for (const auto& section : reader.Sections()) {
         for (const auto& key : reader.GetKeys(section)) {
             std::string rawValue = reader.Get(section, key, "");
@@ -50,11 +63,20 @@ std::string GRAMS_TOF_Config::getString(const std::string& section, const std::s
     return keyIt->second;
 }
 
+std::string GRAMS_TOF_Config::getFileStem(const std::string& section, const std::string& key) const {
+    std::string pathStr = getString(section, key); 
+    return std::filesystem::path(pathStr).stem().string();
+}
+
 int GRAMS_TOF_Config::getInt(const std::string& section, const std::string& key) const {
     return std::stoi(getString(section, key));
 }
 
 double GRAMS_TOF_Config::getDouble(const std::string& section, const std::string& key) const {
     return std::stod(getString(section, key));
+}
+
+const std::string& GRAMS_TOF_Config::getConfigFilePath() const {
+    return configFilePath_;
 }
 
