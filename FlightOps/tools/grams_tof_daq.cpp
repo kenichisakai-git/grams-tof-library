@@ -5,9 +5,16 @@
 #include "GRAMS_TOF_CommandDefs.h"
 #include "GRAMS_TOF_CommandDispatch.h"
 #include "GRAMS_TOF_Logger.h"
+#include "GRAMS_TOF_Config.h"
 
 int main() {
     Logger::instance().setLogFile("log/daq_log.txt");
+    try {
+        GRAMS_TOF_Config::instance().setConfigFile("config/config.ini");
+    } catch (const std::exception& e) {
+        Logger::instance().error("[System] Config load error: {}", e.what());
+        return 1;
+    }
 
     GRAMS_TOF_DAQManager daq(
         "/tmp/d.sock",        // socketPath

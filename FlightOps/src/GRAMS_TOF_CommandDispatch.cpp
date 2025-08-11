@@ -1,8 +1,11 @@
 #include "GRAMS_TOF_CommandDispatch.h"
 #include "GRAMS_TOF_Logger.h"
+#include "GRAMS_TOF_Config.h"
 
 GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration& pyint, GRAMS_TOF_Analyzer& analyzer)
     : pyint_(pyint), analyzer_(analyzer), table_{} {
+
+    auto& config = GRAMS_TOF_Config::instance();
 
     table_[TOFCommandCode::START_DAQ] = [&](const std::vector<int>&) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Starting DAQ...");
@@ -30,12 +33,12 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
     table_[TOFCommandCode::RUN_MAKE_BIAS_CALIB_TABLE] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_bias_calibration_table.py script...");
         return pyint.runPetsysMakeBiasCalibrationTable(
-            "scripts.make_bias_calibration_table",  // module name
-            "/tmp/bias_output.txt",                 // output file
-            {argv.size() > 0 ? argv[0] : 0},        // portIDs.
-            {argv.size() > 1 ? argv[1] : 0},        // slaveIDs
-            {argv.size() > 2 ? argv[2] : 0},        // slotIDs
-            {}                                      // no calibration files
+            "scripts.make_bias_calibration_table",           // module name
+            config.getString("main", "bias_settings_table"), // output file
+            {argv.size() > 0 ? argv[0] : 0},                 // portIDs.
+            {argv.size() > 1 ? argv[1] : 0},                 // slaveIDs
+            {argv.size() > 2 ? argv[2] : 0},                 // slotIDs
+            {}                                               // no calibration files
         );
     };
 
@@ -43,151 +46,149 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_simple_bias_settings_table.py script...");
         return pyint.runPetsysMakeSimpleBiasSettingsTable(
             "scripts.make_simple_bias_settings_table",             // module name
-            "",                                                    // Configuration file
-            argv.size() > 0 ? static_cast<float>(argv[0]) : 0.0f,  // Bias channel offset
-            argv.size() > 1 ? static_cast<float>(argv[1]) : 0.0f,  // Pre-breakdown voltage
-            argv.size() > 2 ? static_cast<float>(argv[2]) : 0.0f,  // Breakdown voltage
-            argv.size() > 3 ? static_cast<float>(argv[3]) : 0.0f,  // Nominal overvoltage
-            ""                                                     // Output file  
+            config.getConfigFilePath(),                            // Configuration file
+            argv.size() > 0 ? static_cast<float>(argv[0]) : 0.75,  // Bias channel offset
+            argv.size() > 1 ? static_cast<float>(argv[1]) : 20,    // Pre-breakdown voltage
+            argv.size() > 2 ? static_cast<float>(argv[2]) : 24.9,  // Breakdown voltage
+            argv.size() > 3 ? static_cast<float>(argv[3]) : 5.0,   // Nominal overvoltage
+            config.getString("main", "bias_settings_table")        // Output file  
         );
     };
 
     table_[TOFCommandCode::RUN_MAKE_SIMPLE_CHANNEL_MAP] = [&](const std::vector<int>&) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_simple_channel_map.py script...");
         return pyint.runPetsysMakeSimpleChannelMap(
-            "scripts.make_simple_channel_map",  // module name
-            ""                                  // Output file
+            "scripts.make_simple_channel_map",       // module name
+            config.getString("main", "channel_map")  // Output file
         );
     };
 
     table_[TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_simple_disc_settings_table.py script...");
         return pyint.runPetsysMakeSimpleDiscSettingsTable(
-            "scripts.make_simple_disc_settings_table",  // module name
-            "",                                         // Configuration file
-            argv.size() > 0 ? argv[0] : 0,              // Discriminator T1 (DAC above zero)
-            argv.size() > 1 ? argv[1] : 0,              // Discriminator T2 (DAC above zero)
-            argv.size() > 2 ? argv[2] : 0,              // Discriminator E (DAC above zero)
-            ""                                          // Output file
+            "scripts.make_simple_disc_settings_table",         // module name
+            config.getConfigFilePath(),                        // Configuration file
+            argv.size() > 0 ? argv[0] : 20,                    // Discriminator T1 (DAC above zero)
+            argv.size() > 1 ? argv[1] : 20,                    // Discriminator T2 (DAC above zero)
+            argv.size() > 2 ? argv[2] : 15,                    // Discriminator E (DAC above zero)
+            config.getString("main", "disc_calibration_table") // Output file
         );
     };
 
     table_[TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing read_temperature_sensors.py script...");
         return pyint.runPetsysReadTemperatureSensors(
-            "scripts.read_temperature_sensors",
-            argv.size() > 0 ? static_cast<double>(argv[0]) : 1.0,
-            argv.size() > 1 ? static_cast<double>(argv[1]) : 0.2,
-            "",
-            argv.size() > 2 ? static_cast<bool>(argv[2]) : false,
-            argv.size() > 3 ? static_cast<bool>(argv[3]) : false
+            "scripts.read_temperature_sensors",                    // module name
+            argv.size() > 0 ? static_cast<double>(argv[0]) : 0.0,  // Acquisition time (in seconds)
+            argv.size() > 1 ? static_cast<double>(argv[1]) : 60.0, // Measurement interval (in seconds)
+            "/dev/null",                                           // Output file
+            argv.size() > 2 ? static_cast<bool>(argv[2]) : true,   // Check temperature stability when starting up
+            argv.size() > 3 ? static_cast<bool>(argv[3]) : false   // Enable debug mode
         );
     };
     
     table_[TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_threshold_calibration.py script...");
         return pyint.runPetsysAcquireThresholdCalibration(
-            "scripts.acquire_threshold_calibration",
-            "",  
-            "",  
-            argv.size() > 0 ? argv[0] : 1,
-            argv.size() > 1 ? argv[1] : 1,
-            argv.size() > 2 ? static_cast<bool>(argv[2]) : false
+            "scripts.acquire_threshold_calibration",              // module name
+            config.getConfigFilePath(),                           // Configuration file 
+            config.getFileStem("main", "disc_calibration_table"), // Data file prefix
+            argv.size() > 0 ? argv[0] : 4,                        // noise_reads
+            argv.size() > 1 ? argv[1] : 4,                        // dark_reads
+            argv.size() > 2 ? static_cast<bool>(argv[2]) : false  // Prompt user to set bias
         );
     };
     
     table_[TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_qdc_calibration.py script...");
         return pyint.runPetsysAcquireQdcCalibration(
-            "scripts.acquire_qdc_calibration",
-            "",  
-            ""   
+            "scripts.acquire_qdc_calibration",                  // module name
+            config.getConfigFilePath(),                         // Configuration file 
+            config.getFileStem("main", "qdc_calibration_table") // Data filename (prefix)
         );
     };
 
     table_[TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_tdc_calibration.py script...");
         return pyint.runPetsysAcquireTdcCalibration(
-            "scripts.acquire_tdc_calibration",
-            "", 
-            ""  
+            "scripts.acquire_tdc_calibration",                  // module name
+            config.getConfigFilePath(),                         // Configuration file 
+            config.getFileStem("main", "tdc_calibration_table") // Data filename (prefix)
         );
     };
     
     table_[TOFCommandCode::RUN_ACQUIRE_SIPM_DATA] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_sipm_data.py script...");
         return pyint.runPetsysAcquireSipmData(
-            "scripts.acquire_sipm_data",
-            "",                                      
-            "",                                     
-            argv.size() > 0 ? static_cast<double>(argv[0]) : 1.0,  // acquisitionTime (float/double)
-            "tot",                                    
-            argv.size() > 1 ? static_cast<bool>(argv[1]) : false, // hwTrigger (bool)
-            ""                                          
+            "scripts.acquire_sipm_data",                           // module name
+            config.getConfigFilePath(),                            // Configuration file              
+            "run_test",                                            // Data filename (prefix) will be determined by Hyebin
+            argv.size() > 0 ? static_cast<double>(argv[0]) : 60.0, // Acquisition time (in seconds) 
+            "qdc",                                                 // Acquisition mode (tot, qdc or mixed) 
+            argv.size() > 1 ? static_cast<bool>(argv[1]) : false,  // Enable the hardware coincidence filter
+            ""                                                     // Optional scan table with 1 or 2 parameters to vary 
         );
     };
 
     table_[TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running threshold calibration...");
     
-        std::string config     = "config.tsv";
-        std::string input      = "input_prefix";
-        std::string output     = "output.tsv";
-        std::string rootOutput = "output.root";
+        std::string configFile = config.getConfigFilePath();                           // Configuration file
+        std::string input      = config.getFileStem("main", "disc_calibration_table"); // Data file prefix
+        std::string output     = config.getString("main", "disc_calibration_table");   // Output table file name
+        std::string rootOutput = "disc_calibration.root";                              // Output ROOT file name
     
-        return analyzer_.runPetsysProcessThresholdCalibration(config, input, output, rootOutput);
+        return analyzer_.runPetsysProcessThresholdCalibration(configFile, input, output, rootOutput);
     };
 
     table_[TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running TDC calibration...");
     
-        std::string config       = "tdc_config.tsv";
-        std::string inputPrefix  = "tdc_input_prefix";
-        std::string outputPrefix = "tdc_output_prefix";
-        std::string tmpPrefix    = "tdc_tmp_prefix";
-    
-        bool doSorting    = argv.size() > 0 ? (argv[0] != 0) : true;
-        bool keepTemporary= argv.size() > 1 ? (argv[1] != 0) : false;
-        float nominalM    = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;
+        std::string configFile   = config.getConfigFilePath();                          // Configuration file
+        std::string inputPrefix  = config.getFileStem("main", "tdc_calibration_table"); // Data file prefix
+        std::string outputPrefix = config.getFileStem("main", "tdc_calibration_table"); // Output table file prefix
+        std::string tmpPrefix    = config.getFileStem("main", "tdc_calibration_table"); // Tmp prefix (=Output ?)
+        bool doSorting    = argv.size() > 0 ? (argv[0] != 0) : true;                    // Do sorting
+        bool keepTemporary= argv.size() > 1 ? (argv[1] != 0) : false;                   // Keep Temporary
+        float nominalM    = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;     // Nominal M
     
         return analyzer_.runPetsysProcessTdcCalibration(
-            config, inputPrefix, outputPrefix, tmpPrefix, doSorting, keepTemporary, nominalM);
+            configFile, inputPrefix, outputPrefix, tmpPrefix, doSorting, keepTemporary, nominalM);
     };
     
     table_[TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running QDC calibration...");
     
-        std::string config       = "qdc_config.tsv";
-        std::string inputPrefix  = "qdc_input_prefix";
-        std::string outputPrefix = "qdc_output_prefix";
-        std::string tmpPrefix    = "qdc_tmp_prefix";
-    
-        bool doSorting    = argv.size() > 0 ? (argv[0] != 0) : true;
-        bool keepTemporary= argv.size() > 1 ? (argv[1] != 0) : false;
-        float nominalM    = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;
+        std::string configFile   = config.getConfigFilePath();                          // Configuration file
+        std::string inputPrefix  = config.getFileStem("main", "qdc_calibration_table"); // Data file prefix  
+        std::string outputPrefix = config.getFileStem("main", "qdc_calibration_table"); // Output table file prefix
+        std::string tmpPrefix    = config.getFileStem("main", "qdc_calibration_table"); // Tmp prefix (=Output ?)
+        bool doSorting    = argv.size() > 0 ? (argv[0] != 0) : true;                    // Do sorting
+        bool keepTemporary= argv.size() > 1 ? (argv[1] != 0) : false;                   // Keep Temporary
+        float nominalM    = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;     // Nominal M
     
         return analyzer_.runPetsysProcessQdcCalibration(
-            config, inputPrefix, outputPrefix, tmpPrefix, doSorting, keepTemporary, nominalM);
+            configFile, inputPrefix, outputPrefix, tmpPrefix, doSorting, keepTemporary, nominalM);
     };
     
     table_[TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Converting raw to singles...");
     
-        std::string config       = "convert_config.tsv";
-        std::string inputPrefix  = "convert_input_prefix";
-        std::string outputFile   = "convert_output.txt";
+        std::string configFile   = config.getConfigFilePath();                          // Configuration file
+        std::string inputPrefix  = "run_test";                                          // Data file prefix
+        std::string outputFile   = inputPrefix + "_single.root";                        // Output file
     
         // Map FILE_TYPE enum to int argument; default to PETSYS::FILE_TEXT = 0 if not passed
-        PETSYS::FILE_TYPE fileType = (argv.size() > 0) ? static_cast<PETSYS::FILE_TYPE>(argv[0]) : PETSYS::FILE_TEXT;
+        PETSYS::FILE_TYPE fileType = (argv.size() > 0) ? static_cast<PETSYS::FILE_TYPE>(argv[0]) : PETSYS::FILE_ROOT;
     
         // eventFractionToWrite, default 1024
-        long long eventFractionToWrite = (argv.size() > 1) ? static_cast<long long>(argv[1]) : 1024;
+        long long eventFractionToWrite = (argv.size() > 1) ? static_cast<long long>(argv[1]) : 1024; 
     
         // fileSplitTime as double; take int argument and convert, default 0.0
         double fileSplitTime = (argv.size() > 2) ? static_cast<double>(argv[2]) : 0.0;
     
         return analyzer_.runPetsysConvertRawToSingles(
-            config, inputPrefix, outputFile, fileType, eventFractionToWrite, fileSplitTime);
+            configFile, inputPrefix, outputFile, fileType, eventFractionToWrite, fileSplitTime);
     };
 }
 

@@ -2,11 +2,13 @@
 #include <pybind11/embed.h>
 #include "GRAMS_TOF_DAQManager.h"
 #include "GRAMS_TOF_Logger.h"
+#include <cstdlib> 
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <exception>
 #include <Python.h>
+#include <filesystem>
 
 // Only one place for bindings in your project!
 PYBIND11_EMBEDDED_MODULE(grams_tof, m) {
@@ -295,17 +297,16 @@ GRAMS_TOF_PythonIntegration::GRAMS_TOF_PythonIntegration(GRAMS_TOF_DAQManager& d
     // Set the special flag to prevent __main__ in scripts
     PyRun_SimpleString("import sys; sys._called_from_c = True");
 
-    // If you also want to load scripts automatically, you can do it here too:
-    loadPythonScript("scripts/init_system.py");
-    loadPythonScript("scripts/make_bias_calibration_table.py");
-    loadPythonScript("scripts/make_simple_bias_settings_table.py");
-    loadPythonScript("scripts/make_simple_channel_map.py");
-    loadPythonScript("scripts/make_simple_disc_settings_table.py");
-    loadPythonScript("scripts/read_temperature_sensors.py");
-    loadPythonScript("scripts/acquire_threshold_calibration.py");
-    loadPythonScript("scripts/acquire_qdc_calibration.py");
-    loadPythonScript("scripts/acquire_tdc_calibration.py");
-    loadPythonScript("scripts/acquire_sipm_data.py");
+    loadPythonScript(resolveScriptPath("init_system.py"));
+    loadPythonScript(resolveScriptPath("make_bias_calibration_table.py"));
+    loadPythonScript(resolveScriptPath("make_simple_bias_settings_table.py"));
+    loadPythonScript(resolveScriptPath("make_simple_channel_map.py"));
+    loadPythonScript(resolveScriptPath("make_simple_disc_settings_table.py"));
+    loadPythonScript(resolveScriptPath("read_temperature_sensors.py"));
+    loadPythonScript(resolveScriptPath("acquire_threshold_calibration.py"));
+    loadPythonScript(resolveScriptPath("acquire_qdc_calibration.py"));
+    loadPythonScript(resolveScriptPath("acquire_tdc_calibration.py"));
+    loadPythonScript(resolveScriptPath("acquire_sipm_data.py"));
 }
 
 GRAMS_TOF_PythonIntegration::~GRAMS_TOF_PythonIntegration() = default;
@@ -416,4 +417,20 @@ GRAMS_TOF_DAQManager& GRAMS_TOF_PythonIntegration::getDAQ() {
     return impl_->getDAQ();
 }
 
+std::string GRAMS_TOF_PythonIntegration::resolveScriptPath(const std::string& scriptName) {
+    const char* glibEnv = std::getenv("GLIB");
+    if (!glibEnv || std::string(glibEnv).empty()) {
+        Logger::instance().warn("[PythonIntegration] GLIB environment variable not set. Using raw script path: {}", scriptName);
+        return scriptName; // fallback to original
+    }
 
+    std::filesystem::path base(glibEnv);
+    std::filesystem::path fullPath = base / "scripts" / scriptName;
+
+    if (!std::filesystem::exists(fullPath)) {
+        Logger::instance().error("[PythonIntegration] Script not found: {}", fullPath.string());
+        throw std::runtime_error("Script not found: " + fullPath.string());
+    }
+
+    return fullPath.string();
+}
