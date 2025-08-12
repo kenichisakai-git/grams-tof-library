@@ -134,6 +134,7 @@ void GRAMS_TOF_DAQManager::pollSocket() {
     event.events = EPOLLIN;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, clientSocket_, &event) == -1) {
         perror("epoll_ctl()");
+        close(epoll_fd);
         return;
     }
 
@@ -148,27 +149,50 @@ void GRAMS_TOF_DAQManager::pollSocket() {
 
         sigprocmask(SIG_BLOCK, &mask, &omask);
         int nReady = epoll_pwait(epoll_fd, &event, 1, 100, &omask);
-        sigprocmask(SIG_SETMASK, &omask, NULL);
+        sigprocmask(SIG_SETMASK, &omask, nullptr);
 
         if (nReady == -1) continue;
+
         if (event.data.fd == clientSocket_) {
             int client_fd = accept(clientSocket_, nullptr, nullptr);
             if (client_fd == -1) continue;
+
             fprintf(stderr, "Got new client: %d\n", client_fd);
 
             event.data.fd = client_fd;
             event.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-            epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event);
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event) == -1) {
+                perror("epoll_ctl add client_fd");
+                close(client_fd);
+                continue;
+            }
+
             clientList[client_fd] = new Client(client_fd, frameServer_);
         } else {
-            Client* client = clientList[event.data.fd];
+            auto it = clientList.find(event.data.fd);
+            if (it == clientList.end()) {
+                // Unknown client fd — remove from epoll and close socket to clean up
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event.data.fd, nullptr);
+                close(event.data.fd);
+                continue;
+            }
+            Client* client = it->second;
+
             if ((event.events & EPOLLHUP) || (event.events & EPOLLERR) || (client->handleRequest() == -1)) {
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event.data.fd, nullptr);
                 delete client;
-                clientList.erase(event.data.fd);
+                clientList.erase(it);
+                close(event.data.fd);
             }
         }
     }
+
+    // Cleanup on exit: close all client sockets and free clients
+    for (auto& pair : clientList) {
+        close(pair.first);
+        delete pair.second;
+    }
+    close(epoll_fd);
 }
 
 void GRAMS_TOF_DAQManager::cleanup() {

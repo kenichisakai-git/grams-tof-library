@@ -9,13 +9,40 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
 
     table_[TOFCommandCode::START_DAQ] = [&](const std::vector<int>&) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Starting DAQ...");
-        pyint_.getDAQ().run();
+
+        std::lock_guard<std::mutex> lock(daqMutex_);
+        if (daqRunning_) {
+            Logger::instance().warn("[GRAMS_TOF_CommandDispatch] DAQ is already running.");
+            return false;
+        }
+
+        daqRunning_ = true;
+        daqThread_ = std::thread(&GRAMS_TOF_CommandDispatch::runDAQThread, this);
         return true;
     };
-    
+
     table_[TOFCommandCode::STOP_DAQ] = [&](const std::vector<int>&) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Stopping DAQ...");
+
+        {
+            std::lock_guard<std::mutex> lock(daqMutex_);
+            if (!daqRunning_) {
+                Logger::instance().warn("[GRAMS_TOF_CommandDispatch] DAQ is not running.");
+                return false;
+            }
+        }
+
         pyint_.getDAQ().stop();
+
+        if (daqThread_.joinable()) {
+            daqThread_.join();
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(daqMutex_);
+            daqRunning_ = false;
+        }
+
         return true;
     };
 
@@ -192,7 +219,24 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
     };
 }
 
-bool GRAMS_TOF_CommandDispatch::dispatch(TOFCommandCode code, const std::vector<int>& argv) const {
+GRAMS_TOF_CommandDispatch::~GRAMS_TOF_CommandDispatch() {
+    if (daqRunning_) {
+        pyint_.getDAQ().stop();
+        if (daqThread_.joinable()) {
+            daqThread_.join();
+        }
+    }
+}
+
+void GRAMS_TOF_CommandDispatch::runDAQThread() {
+    pyint_.getDAQ().run();
+
+    // Once run() returns, mark as not running
+    std::lock_guard<std::mutex> lock(daqMutex_);
+    daqRunning_ = false;
+}
+
+bool GRAMS_TOF_CommandDispatch::dispatch(TOFCommandCode code, const std::vector<int>& argv) {
     auto it = table_.find(code);
     if (it != table_.end()) {
         return it->second(argv);
