@@ -42,19 +42,3 @@ export GRAMS_TOF_LIB=$HOME/work/grams/grams-tof-library/install
 source $GRAMS_TOF_LIB/Tool/config/grams_env.bash
 ```
 
-## linked by external library
-```bash
-find_package(GramsLibrary REQUIRED)
-if (GramsLibrary_FOUND)
-    message(STATUS "GramsLibrary found successfully!")
-else()
-    message(WARNING "GramsLibrary not found.")
-endif()
-...
-get_target_property(inc_dirs Grams::Tofpet2Lib INTERFACE_INCLUDE_DIRECTORIES)
-message(STATUS "Tofpet2Lib includes: ${inc_dirs}") #just check
-...
-target_link_libraries(GalpropDataLib PUBLIC Grams::Tofpet2Lib) #header dir is automatically loaded
-...
-```
-

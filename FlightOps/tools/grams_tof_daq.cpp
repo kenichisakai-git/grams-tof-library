@@ -24,17 +24,16 @@ int main() {
         {"/dev/psdaq0"}       // daqCards
     );
 
-    /*
     if (!daq.initialize()) {
-        std::cerr << "[System] DAQ initialization failed.\n";
+        Logger::instance().info("[System] DAQ initialization failed.");
         return 1;
     }
-    */
 
     setenv("DEBUG", "1", 1); 
     GRAMS_TOF_PythonIntegration pyint(daq);
     GRAMS_TOF_Analyzer analyzer;
     GRAMS_TOF_CommandDispatch dispatchTable(pyint, analyzer);
+
 
     GRAMS_TOF_CommandServer server(
         12345,
