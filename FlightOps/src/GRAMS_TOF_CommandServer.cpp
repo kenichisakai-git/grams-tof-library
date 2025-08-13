@@ -7,6 +7,48 @@
 #include <netinet/in.h> // for sockaddr_in
 #include <unistd.h>     // for close()
 
+// Helper to build ACK/NACK packets
+static GRAMS_TOF_CommandCodec::Packet buildAckPacket(
+    const GRAMS_TOF_CommandCodec::Packet& original,
+    AckStatus status)
+{
+    GRAMS_TOF_CommandCodec::Packet ack;
+    ack.code = TOFCommandCode::ACK; // ACK command code
+    ack.argc = 2;
+    ack.argv = {
+        static_cast<int32_t>(original.code), // original command code
+        static_cast<int32_t>(status)         // SUCCESS or FAILURE
+    };
+    return ack;
+}
+
+// Overload for parse failure
+static GRAMS_TOF_CommandCodec::Packet buildAckPacketForFailure()
+{
+    GRAMS_TOF_CommandCodec::Packet ack;
+    ack.code = TOFCommandCode::ACK;
+    ack.argc = 2;
+    ack.argv = { 
+        -1,                                       // -1 = invalid command code
+        static_cast<int32_t>(AckStatus::FAILURE)  // NACK
+    };
+    return ack;
+}
+
+static ssize_t safeWrite(int sock, const uint8_t* data, size_t size) {
+    size_t totalWritten = 0;
+    while (totalWritten < size) {
+        ssize_t n = write(sock, data + totalWritten, size - totalWritten);
+        if (n < 0) {
+            if (errno == EINTR) continue; // retry if interrupted
+            Logger::instance().error("[CommandServer] Write error: {}", std::strerror(errno));
+            return n;
+        }
+        totalWritten += n;
+    }
+    return totalWritten;
+}
+
 GRAMS_TOF_CommandServer::GRAMS_TOF_CommandServer(int port, CommandHandler handler)
     : port_(port), handler_(std::move(handler)), running_(false) {}
 
@@ -49,11 +91,13 @@ void GRAMS_TOF_CommandServer::run() {
 
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
         Logger::instance().error("[CommandServer] Bind failed on port {}", port_);
-        close(server_fd); return;
+        close(server_fd);
+        return;
     }
     if (listen(server_fd, 3) < 0) {
         Logger::instance().error("[CommandServer] Listen failed");
-        close(server_fd); return;
+        close(server_fd);
+        return;
     }
     Logger::instance().info("[CommandServer] Listening on port {}", port_);
 
@@ -71,13 +115,38 @@ void GRAMS_TOF_CommandServer::run() {
 
         char buffer[512] = {0};
         ssize_t valread = read(new_socket, buffer, sizeof(buffer));
+
         if (valread > 0) {
             std::vector<uint8_t> data(buffer, buffer + valread);
             GRAMS_TOF_CommandCodec::Packet pkt;
             if (GRAMS_TOF_CommandCodec::parse(data, pkt)) {
-                handler_(pkt); 
+        
+                // Default to SUCCESS unless handler reports otherwise
+                AckStatus status = AckStatus::SUCCESS;
+                try {
+                    handler_(pkt);
+                } catch (const std::exception& e) {
+                    Logger::instance().error("[CommandServer] Handler error: {}", e.what());
+                    status = AckStatus::FAILURE;
+                } catch (...) {
+                    Logger::instance().error("[CommandServer] Unknown handler error");
+                    status = AckStatus::FAILURE;
+                }
+        
+                // Send ACK (or NACK) back to client
+                auto ackPkt = buildAckPacket(pkt, status);
+                auto ackBytes = GRAMS_TOF_CommandCodec::serialize(ackPkt);
+                safeWrite(new_socket, ackBytes.data(), ackBytes.size());
             } else {
                 Logger::instance().error("[CommandServer] Failed to parse incoming packet");
+        
+                // Send NACK for parse failure
+                auto nackPkt = buildAckPacket(
+                    GRAMS_TOF_CommandCodec::Packet{},  // Empty original packet
+                    AckStatus::FAILURE
+                );
+                auto nackBytes = GRAMS_TOF_CommandCodec::serialize(nackPkt);
+                safeWrite(new_socket, nackBytes.data(), nackBytes.size());
             }
         }
         close(new_socket);

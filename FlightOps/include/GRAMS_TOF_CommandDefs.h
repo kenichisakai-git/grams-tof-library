@@ -22,9 +22,15 @@ enum class TOFCommandCode : uint16_t {
     RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x5200,
     RUN_PROCESS_TDC_CALIBRATION            = 0x5201,
     RUN_PROCESS_QDC_CALIBRATION            = 0x5202,
-    RUN_CONVERT_RAW_TO_SINGLES             = 0x5203
+    RUN_CONVERT_RAW_TO_SINGLES             = 0x5203,
+
+    ACK                                    = 0x5FFF
 };
 
+enum class AckStatus : uint8_t {
+    FAILURE = 0,
+    SUCCESS = 1
+};
 
 inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
     switch (code) {
@@ -47,6 +53,7 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION:         return os << "RUN_PROCESS_TDC_CALIBRATION";
         case TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION:         return os << "RUN_PROCESS_QDC_CALIBRATION";
         case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:          return os << "RUN_CONVERT_RAW_TO_SINGLES";
+        case TOFCommandCode::ACK:                                 return os << "ACK";
 
         default:                                                  return os << "UNKNOWN_CODE";
     }
