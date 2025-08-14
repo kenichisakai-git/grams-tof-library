@@ -31,6 +31,7 @@ public:
     static std::vector<uint8_t> serialize(const Packet& packet);
 
 private:
-    static uint16_t computeCRC16(const uint8_t* data, size_t len);
+    static uint16_t computeCRC16_CCITT_1021(const uint8_t* data, size_t len);
+    static uint16_t computeCRC16_CCITT_8408(const uint8_t* data, size_t len); //Shota's
 };
 

@@ -22,10 +22,10 @@ target_link_libraries(GramsTofFlightOpsLib PUBLIC fmt::fmt)
 target_link_libraries(GramsTofFlightOpsLib PUBLIC rt)
 
 add_executable(grams_tof_daq.exe tools/grams_tof_daq.cpp)
-target_link_libraries(grams_tof_daq.exe PRIVATE GramsTofFlightOpsLib)
+target_link_libraries(grams_tof_daq.exe PRIVATE GramsTofFlightOpsLib cli11)
 
 add_executable(grams_tof_client.exe tools/grams_tof_client.cpp)
-target_link_libraries(grams_tof_client.exe PRIVATE GramsTofFlightOpsLib)
+target_link_libraries(grams_tof_client.exe PRIVATE GramsTofFlightOpsLib cli11)
 
 add_executable(grams_tof_config_test.exe tools/grams_tof_config_test.cpp)
 target_link_libraries(grams_tof_config_test.exe PRIVATE GramsTofFlightOpsLib)
@@ -60,6 +60,7 @@ add_subdirectory(external/daqd)
 add_subdirectory(external/pybind11)
 add_subdirectory(external/inih)
 add_subdirectory(external/scripts_c)
+add_subdirectory(external/CLI11-2.2.0)
 
 set(FMT_INSTALL ON CACHE BOOL "" FORCE)
 set(FMT_STATIC ON CACHE BOOL "" FORCE)
