@@ -1,5 +1,6 @@
 #include "GRAMS_TOF_CommandCodec.h"
 
+#include <CLI11.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -11,33 +12,24 @@
 #include <unistd.h>
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <code (hex|dec)> [arg1 arg2 ...] [--corrupt]\n";
-        return 1;
-    }
+    CLI::App app{"GRAMS TOF Client"};
 
-    std::vector<std::string> positionalArgs;
+    std::string codeStr;
+    std::vector<int> args;
     bool corruptPacket = false;
+    std::string serverIP = "127.0.0.1";
+    int serverPort = 12345;
 
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--corrupt") {
-            corruptPacket = true;
-        } else if (!arg.empty() && arg[0] == '-') {
-            std::cerr << "Unknown option: " << arg << "\n";
-            return 1;
-        } else {
-            positionalArgs.push_back(arg);
-        }
-    }
+    // Define CLI options
+    app.add_option("code", codeStr, "Command code (hex like 0x1A or decimal)")->required();
+    app.add_option("args", args, "Command arguments (integers)")->expected(-1);
+    app.add_flag("--corrupt", corruptPacket, "Corrupt CRC for testing");
+    app.add_option("--ip", serverIP, "Server IP address");
+    app.add_option("--port", serverPort, "Server port");
 
-    if (positionalArgs.empty()) {
-        std::cerr << "Missing command code\n";
-        return 1;
-    }
+    CLI11_PARSE(app, argc, argv);
 
     // Parse command code
-    std::string codeStr = positionalArgs[0];
     uint16_t rawCode = 0;
     try {
         rawCode = (codeStr.find("0x") == 0 || codeStr.find("0X") == 0)
@@ -52,14 +44,11 @@ int main(int argc, char* argv[]) {
     GRAMS_TOF_CommandCodec::Packet pkt;
     pkt.code = static_cast<TOFCommandCode>(rawCode);
 
-    for (size_t i = 1; i < positionalArgs.size(); ++i) {
-        try {
-            pkt.argv.push_back(std::stoi(positionalArgs[i]));
-        } catch (...) {
-            std::cerr << "Invalid integer argument: " << positionalArgs[i] << "\n";
-            return 1;
-        }
+    pkt.argv.clear();
+    for (auto a : args) {
+        pkt.argv.push_back(static_cast<int32_t>(a)); // match Packet::argv type
     }
+    pkt.argc = static_cast<uint16_t>(pkt.argv.size());
 
     std::cout << "[Client] Auto argc = " << pkt.argv.size() << "\n";
 
@@ -83,9 +72,9 @@ int main(int argc, char* argv[]) {
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(12345);
-    if (inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr) <= 0) {
-        std::cerr << "Invalid IP address\n";
+    addr.sin_port = htons(serverPort);
+    if (inet_pton(AF_INET, serverIP.c_str(), &addr.sin_addr) <= 0) {
+        std::cerr << "Invalid IP address: " << serverIP << "\n";
         close(sock);
         return 1;
     }
@@ -126,7 +115,7 @@ int main(int argc, char* argv[]) {
             std::vector<uint8_t>(buffer.begin(), buffer.begin() + received),
             ackPacket
         );
-        
+
         if (!ok) {
             std::cerr << "[Client] Failed to parse ACK/NACK packet\n";
         } else {
@@ -146,7 +135,4 @@ int main(int argc, char* argv[]) {
     close(sock);
     return 0;
 }
-
-
-
 

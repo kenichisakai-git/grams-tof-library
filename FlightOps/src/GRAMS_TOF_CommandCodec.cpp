@@ -45,7 +45,7 @@ bool GRAMS_TOF_CommandCodec::parse(const std::vector<uint8_t>& data, Packet& out
 
     // CRC check
     uint16_t receivedCRC = read16(ptr + payloadSize);
-    uint16_t computedCRC = computeCRC16(ptr, payloadSize);
+    uint16_t computedCRC = computeCRC16_CCITT_8408(ptr, payloadSize);
     if (receivedCRC != computedCRC) {
         Logger::instance().error("[Codec] CRC mismatch. Received 0x{:X}, Expected 0x{:X}", receivedCRC, computedCRC);
         return false;
@@ -86,7 +86,7 @@ std::vector<uint8_t> GRAMS_TOF_CommandCodec::serialize(const Packet& pkt) {
         write32(buf, pkt.argv[i]);
  
     // Compute CRC of everything so far
-    uint16_t crc = computeCRC16(buf.data(), buf.size());
+    uint16_t crc = computeCRC16_CCITT_8408(buf.data(), buf.size());
     write16(buf, crc);    // CRC (Temporary) 
 
     write16(buf, 0xC5A4); // Footer 1
@@ -95,8 +95,8 @@ std::vector<uint8_t> GRAMS_TOF_CommandCodec::serialize(const Packet& pkt) {
     return buf;
 }
 
-//CRC-16-CCITT (0x1021) Just temporary, not fixed yet. Shota may decide it. 
-uint16_t GRAMS_TOF_CommandCodec::computeCRC16(const uint8_t* data, size_t len) {
+//CRC-16-CCITT (0x1021) Just temporary
+uint16_t GRAMS_TOF_CommandCodec::computeCRC16_CCITT_1021(const uint8_t* data, size_t len) {
     uint16_t crc = 0xFFFF;
     for (size_t i = 0; i < len; ++i) {
         crc ^= static_cast<uint16_t>(data[i]) << 8;
@@ -105,4 +105,18 @@ uint16_t GRAMS_TOF_CommandCodec::computeCRC16(const uint8_t* data, size_t len) {
     }
     return crc;
 }
+
+// CRC-16-CCITT (0x8408, LSB-first) per Shota's definition
+uint16_t GRAMS_TOF_CommandCodec::computeCRC16_CCITT_8408(const uint8_t* data, size_t len) {
+    uint16_t crc = 0x0000;
+    for (size_t i = 0; i < len; ++i) {
+        crc ^= data[i];
+        for (int j = 0; j < 8; ++j) {
+            if (crc & 1)  crc = (crc >> 1) ^ 0x8408;
+            else          crc >>= 1;
+        }
+    }
+    return crc;
+}
+
 
