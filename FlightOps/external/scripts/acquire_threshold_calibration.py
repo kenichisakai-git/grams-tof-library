@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from petsys import daqd, config
+from petsys import daqd, config, fe_temperature, fe_power
 from copy import deepcopy
 import argparse
 from time import sleep, time
@@ -18,17 +18,31 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
     else:
             systemConfig = config.ConfigFromFile(config_file, loadMask=config.LOAD_BIAS_CALIBRATION | config.LOAD_BIAS_SETTINGS)
     
-    daqd = daqd.Connection()
-    daqd.initializeSystem()
+    conn = daqd.Connection()
+
+    # Ensure FEM power is ON
+    for portID, slaveID in conn.getActiveFEBDs():
+        if not fe_power.get_fem_power_status(conn, portID, slaveID):
+            print(f'WARNING: FEM Power for (portID, slaveID) = ({portID}, {slaveID}) is OFF.')
+            fe_power.set_fem_power(conn, portID, slaveID, "on")
+            time.sleep(0.01)
+
+    # Check sensors
+    sensor_list = fe_temperature.get_sensor_list(conn)
+    if not sensor_list:
+        print("ERROR: No sensors found. Check connections and power.")
+        return False
+
+    conn.initializeSystem()
     if ext_bias:
-            systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_OFF)
+            systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_OFF)
     else:
-            systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_PREBD)
-    asicsConfig = daqd.getAsicsConfig()
+            systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_PREBD)
+    asicsConfig = conn.getAsicsConfig()
     
     
     COUNT_MAX = 1.0 * (2**22)
-    T = COUNT_MAX * (1 / daqd.getSystemFrequency())
+    T = COUNT_MAX * (1 / conn.getSystemFrequency())
     
     
     thresholdList = [
@@ -37,7 +51,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
             (2,  "vth_e", "baseline_e")
     ]
     
-    activeAsics = daqd.getActiveAsics()
+    activeAsics = conn.getActiveAsics()
     activeChannels = [ (portID, slaveID, chipID, channelID) for channelID in range(64) for portID, slaveID, chipID in activeAsics ]
     
     # Adjust baseline
@@ -46,7 +60,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
             if not ac: continue
             gc = ac.globalConfig
     
-            if daqd.getAsicSubtype(portID, slaveID, chipID) == "2B":
+            if conn.getAsicSubtype(portID, slaveID, chipID) == "2B":
                     COUNTER_SETTING = 0x4
             else:
                     COUNTER_SETTING = 0b110
@@ -62,7 +76,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
     
     
     counter_sharing = 1
-    asicSubTypes = set([ daqd.getAsicSubtype(portID, slaveID, chipID) for portID, slaveID, chipID in list(asicsConfig.keys()) ])
+    asicSubTypes = set([ conn.getAsicSubtype(portID, slaveID, chipID) for portID, slaveID, chipID in list(asicsConfig.keys()) ])
     if "2B" in asicSubTypes:
             counter_sharing = 8
     
@@ -83,13 +97,13 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                                     cc.setValue("vth_e", 0)
                                     cc.setValue("trigger_mode_2_b", thresholdIndex)
                                     cc.setValue(thresholdName, 61)
-                    daqd.setAsicsConfig(asicsConfig)
+                    conn.setAsicsConfig(asicsConfig)
                     sleep(1 * T)
                     sleep(counter_sharing * T)
     
                     count_high = {}
                     for portID, slaveID, chipID in activeAsics:
-                            vv = daqd.read_mem_ctrl(portID, slaveID, 5, 24, 64*chipID, 64)
+                            vv = conn.read_mem_ctrl(portID, slaveID, 5, 24, 64*chipID, 64)
                             for channelID, v in enumerate(vv):
                                     v = v / COUNT_MAX
                                     count_high[(portID, slaveID, chipID, channelID)] = v
@@ -149,7 +163,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                                     cc.setValue("trigger_mode_2_b", thresholdIndex)
                                     cc.setValue(thresholdName, thresholdValue)
     
-                    daqd.setAsicsConfig(asicsConfig)
+                    conn.setAsicsConfig(asicsConfig)
                     sleep(1*T)
                     next_read_start_time = time() + counter_sharing*T + 1E-3
                     for n in range(dark_reads):
@@ -157,7 +171,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                             if s > 0: sleep(s)
                             next_read_start_time = time() + counter_sharing*T + 1E-3
                             for portID, slaveID, chipID in activeAsics:
-                                    vv = daqd.read_mem_ctrl(portID, slaveID, 5, 24, 64*chipID, 64)
+                                    vv = conn.read_mem_ctrl(portID, slaveID, 5, 24, 64*chipID, 64)
                                     for channelID, v in enumerate(vv):
                                             # Write out fraction of discriminator active time
                                             v = v / COUNT_MAX
@@ -182,10 +196,10 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                     cc.setValue("dead_time", 20)
     
     if ext_bias:
-            systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_OFF)
+            systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_OFF)
             input("Set normal operation bias voltage and press ENTER")
     else:
-            systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_ON)
+            systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_ON)
     
     darkProfiles = {}
     print("Scanning threshold for dark counts")
@@ -200,7 +214,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                                     cc.setValue("trigger_mode_2_b", thresholdIndex)
                                     cc.setValue(thresholdName, thresholdValue)
     
-                    daqd.setAsicsConfig(asicsConfig)
+                    conn.setAsicsConfig(asicsConfig)
                     sleep(1*T)
                     next_read_start_time = time() + counter_sharing*T + 1E-3
                     for n in range(dark_reads):
@@ -208,7 +222,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                             if s > 0: sleep(s)
                             next_read_start_time = time() + counter_sharing*T + 1E-3
                             for portID, slaveID, chipID in activeAsics:
-                                    vv = daqd.read_mem_ctrl(portID, slaveID, 5, 24, 64*chipID, 64)
+                                    vv = conn.read_mem_ctrl(portID, slaveID, 5, 24, 64*chipID, 64)
                                     for channelID, v in enumerate(vv):
                                             # Write out event frequency
                                             v = v / T
@@ -219,7 +233,7 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
             stdout.write("\n")
     outFile.close()
     
-    systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_OFF)
+    systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_OFF)
 
 def safe_acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, dark_reads=4, ext_bias=False):
     try:

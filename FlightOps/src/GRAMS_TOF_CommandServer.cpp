@@ -13,7 +13,7 @@ static GRAMS_TOF_CommandCodec::Packet buildAckPacket(
     AckStatus status)
 {
     GRAMS_TOF_CommandCodec::Packet ack;
-    ack.code = TOFCommandCode::ACK; // ACK command code
+    ack.code = static_cast<uint16_t>(tof_bridge::toCommCode(TOFCommandCode::ACK)); 
     ack.argc = 2;
     ack.argv = {
         static_cast<int32_t>(original.code), // original command code
@@ -26,7 +26,7 @@ static GRAMS_TOF_CommandCodec::Packet buildAckPacket(
 static GRAMS_TOF_CommandCodec::Packet buildAckPacketForFailure()
 {
     GRAMS_TOF_CommandCodec::Packet ack;
-    ack.code = TOFCommandCode::ACK;
+    ack.code = static_cast<uint16_t>(tof_bridge::toCommCode(TOFCommandCode::ACK)); 
     ack.argc = 2;
     ack.argv = { 
         -1,                                       // -1 = invalid command code
