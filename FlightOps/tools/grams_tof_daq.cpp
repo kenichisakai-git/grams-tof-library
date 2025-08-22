@@ -62,7 +62,10 @@ int main(int argc, char* argv[]) {
     GRAMS_TOF_CommandServer server(
         serverPort,
         [&](const GRAMS_TOF_CommandCodec::Packet& pkt) {
-            TOFCommandCode code = pkt.code;
+            TOFCommandCode code = tof_bridge::toTOFCommand(
+                static_cast<pgrams::communication::CommunicationCodes>(pkt.code)
+            );
+
             const auto& argv = pkt.argv;
 
             if (!dispatchTable.dispatch(code, argv)) {

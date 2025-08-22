@@ -1,30 +1,33 @@
 #pragma once
 
+#include "CommunicationCodes.hh" 
 #include <cstdint>
 #include <ostream>
 
 enum class TOFCommandCode : uint16_t {
-    START_DAQ                              = 0x5000,
-    STOP_DAQ                               = 0x5001,
-    RESET_DAQ                              = 0x5002,
+    START_DAQ                              = 0x0000,
+    STOP_DAQ                               = 0x0001,
+    RESET_DAQ                              = 0x0002,
 
-    RUN_INIT_SYSTEM                        = 0x5100,
-    RUN_MAKE_BIAS_CALIB_TABLE              = 0x5101,
-    RUN_MAKE_SIMPLE_BIAS_SET_TABLE         = 0x5102,
-    RUN_MAKE_SIMPLE_CHANNEL_MAP            = 0x5103,
-    RUN_MAKE_SIMPLE_DISC_SET_TABLE         = 0x5104,
-    RUN_READ_TEMPERATURE_SENSORS           = 0x5105,
-    RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x5106,
-    RUN_ACQUIRE_QDC_CALIBRATION            = 0x5107,
-    RUN_ACQUIRE_TDC_CALIBRATION            = 0x5108,
-    RUN_ACQUIRE_SIPM_DATA                  = 0x5109,
+    RUN_INIT_SYSTEM                        = 0x0100,
+    RUN_MAKE_BIAS_CALIB_TABLE              = 0x0101,
+    RUN_MAKE_SIMPLE_BIAS_SET_TABLE         = 0x0102,
+    RUN_MAKE_SIMPLE_CHANNEL_MAP            = 0x0103,
+    RUN_MAKE_SIMPLE_DISC_SET_TABLE         = 0x0104,
+    RUN_READ_TEMPERATURE_SENSORS           = 0x0105,
+    RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x0106,
+    RUN_ACQUIRE_QDC_CALIBRATION            = 0x0107,
+    RUN_ACQUIRE_TDC_CALIBRATION            = 0x0108,
+    RUN_ACQUIRE_SIPM_DATA                  = 0x0109,
     
-    RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x5200,
-    RUN_PROCESS_TDC_CALIBRATION            = 0x5201,
-    RUN_PROCESS_QDC_CALIBRATION            = 0x5202,
-    RUN_CONVERT_RAW_TO_SINGLES             = 0x5203,
+    RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x0200,
+    RUN_PROCESS_TDC_CALIBRATION            = 0x0201,
+    RUN_PROCESS_QDC_CALIBRATION            = 0x0202,
+    RUN_CONVERT_RAW_TO_SINGLES             = 0x0203,
 
-    ACK                                    = 0x5FFF
+    ACK                                    = 0x0FFF,
+    Callback                               = 0x0FFE,
+    HeartBeat                              = 0x0FFD
 };
 
 enum class AckStatus : uint8_t {
@@ -54,8 +57,77 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION:         return os << "RUN_PROCESS_QDC_CALIBRATION";
         case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:          return os << "RUN_CONVERT_RAW_TO_SINGLES";
         case TOFCommandCode::ACK:                                 return os << "ACK";
+        case TOFCommandCode::Callback:                            return os << "Callback";
+        case TOFCommandCode::HeartBeat:                           return os << "HeartBeat";
 
         default:                                                  return os << "UNKNOWN_CODE";
     }
 }
 
+namespace tof_bridge {
+
+using namespace pgrams::communication;
+
+// Convert TOFCommandCode -> CommunicationCodes
+inline CommunicationCodes toCommCode(TOFCommandCode code) {
+    switch (code) {
+        case TOFCommandCode::START_DAQ:                         return CommunicationCodes::TOF_Start_DAQ;
+        case TOFCommandCode::STOP_DAQ:                          return CommunicationCodes::TOF_Stop_DAQ;
+        case TOFCommandCode::RESET_DAQ:                         return CommunicationCodes::TOF_Reset_DAQ;
+
+        case TOFCommandCode::RUN_INIT_SYSTEM:                   return CommunicationCodes::TOF_Run_Init_System;
+        case TOFCommandCode::RUN_MAKE_BIAS_CALIB_TABLE:         return CommunicationCodes::TOF_Run_Make_Bias_Calib_Table;
+        case TOFCommandCode::RUN_MAKE_SIMPLE_BIAS_SET_TABLE:    return CommunicationCodes::TOF_Run_Make_Simple_Bias_Set_Table;
+        case TOFCommandCode::RUN_MAKE_SIMPLE_CHANNEL_MAP:       return CommunicationCodes::TOF_Run_Make_Simple_Channel_Map;
+        case TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE:    return CommunicationCodes::TOF_Run_Make_Simple_Disc_Set_Table;
+        case TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS:      return CommunicationCodes::TOF_Run_Read_Temperature_Sensors;
+        case TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION: return CommunicationCodes::TOF_Run_Acquire_Threshold_Calibration;
+        case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Acquire_QDC_Calibration;
+        case TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Acquire_TDC_Calibration;
+        case TOFCommandCode::RUN_ACQUIRE_SIPM_DATA:             return CommunicationCodes::TOF_Run_Acquire_SiPM_Data;
+
+        case TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION: return CommunicationCodes::TOF_Run_Process_Threshold_Calibration;
+        case TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Process_TDC_Calibration;
+        case TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Process_QDC_Calibration;
+        case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:        return CommunicationCodes::TOF_Run_Convert_Raw_To_Singles;
+
+        case TOFCommandCode::ACK:                               return CommunicationCodes::TOF_ACK;
+        case TOFCommandCode::Callback:                          return CommunicationCodes::TOF_Callback;
+        case TOFCommandCode::HeartBeat:                         return CommunicationCodes::TOF_HeartBeat;
+
+        default: return CommunicationCodes::TOF_HeartBeat; // safe fallback
+    }
+}
+
+// Convert CommunicationCodes -> TOFCommandCode
+inline TOFCommandCode toTOFCommand(CommunicationCodes code) {
+    switch (code) {
+        case CommunicationCodes::TOF_Start_DAQ:                         return TOFCommandCode::START_DAQ;
+        case CommunicationCodes::TOF_Stop_DAQ:                          return TOFCommandCode::STOP_DAQ;
+        case CommunicationCodes::TOF_Reset_DAQ:                         return TOFCommandCode::RESET_DAQ;
+
+        case CommunicationCodes::TOF_Run_Init_System:                   return TOFCommandCode::RUN_INIT_SYSTEM;
+        case CommunicationCodes::TOF_Run_Make_Bias_Calib_Table:         return TOFCommandCode::RUN_MAKE_BIAS_CALIB_TABLE;
+        case CommunicationCodes::TOF_Run_Make_Simple_Bias_Set_Table:    return TOFCommandCode::RUN_MAKE_SIMPLE_BIAS_SET_TABLE;
+        case CommunicationCodes::TOF_Run_Make_Simple_Channel_Map:       return TOFCommandCode::RUN_MAKE_SIMPLE_CHANNEL_MAP;
+        case CommunicationCodes::TOF_Run_Make_Simple_Disc_Set_Table:    return TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE;
+        case CommunicationCodes::TOF_Run_Read_Temperature_Sensors:      return TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS;
+        case CommunicationCodes::TOF_Run_Acquire_Threshold_Calibration: return TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Acquire_QDC_Calibration:       return TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Acquire_TDC_Calibration:       return TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Acquire_SiPM_Data:             return TOFCommandCode::RUN_ACQUIRE_SIPM_DATA;
+
+        case CommunicationCodes::TOF_Run_Process_Threshold_Calibration: return TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Process_TDC_Calibration:       return TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Process_QDC_Calibration:       return TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Convert_Raw_To_Singles:        return TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES;
+
+        case CommunicationCodes::TOF_ACK:                               return TOFCommandCode::ACK;
+        case CommunicationCodes::TOF_Callback:                          return TOFCommandCode::Callback;
+        case CommunicationCodes::TOF_HeartBeat:                         return TOFCommandCode::HeartBeat;
+
+        default: return TOFCommandCode::RESET_DAQ; // safe default
+    }
+}
+
+} // namespace tof_bridge

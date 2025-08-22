@@ -60,12 +60,12 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(GRAMS_TOF_PythonIntegration
     table_[TOFCommandCode::RUN_MAKE_BIAS_CALIB_TABLE] = [&](const std::vector<int>& argv) {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_bias_calibration_table.py script...");
         return pyint.runPetsysMakeBiasCalibrationTable(
-            "scripts.make_bias_calibration_table",           // module name
-            config.getString("main", "bias_settings_table"), // output file
-            {argv.size() > 0 ? argv[0] : 0},                 // portIDs.
-            {argv.size() > 1 ? argv[1] : 0},                 // slaveIDs
-            {argv.size() > 2 ? argv[2] : 0},                 // slotIDs
-            {}                                               // no calibration files
+            "scripts.make_bias_calibration_table",              // module name
+            config.getString("main", "bias_calibration_table"), // output file
+            {argv.size() > 0 ? argv[0] : 0},                    // portIDs.
+            {argv.size() > 1 ? argv[1] : 0},                    // slaveIDs
+            {argv.size() > 2 ? argv[2] : 0},                    // slotIDs
+            {}                                                  // no calibration files
         );
     };
 

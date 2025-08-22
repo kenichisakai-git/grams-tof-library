@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
     // Build packet
     GRAMS_TOF_CommandCodec::Packet pkt;
-    pkt.code = static_cast<TOFCommandCode>(rawCode);
+    pkt.code = static_cast<uint16_t>(rawCode);
 
     pkt.argv.clear();
     for (auto a : args) {

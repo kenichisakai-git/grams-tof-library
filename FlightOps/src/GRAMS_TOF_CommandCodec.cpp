@@ -59,7 +59,8 @@ bool GRAMS_TOF_CommandCodec::parse(const std::vector<uint8_t>& data, Packet& out
     }
         
     Logger::instance().detail("[Parser] Parsed code = 0x{:X}, argc = {}", code, argc);
-    outPacket.code = static_cast<TOFCommandCode>(code);
+    //outPacket.code = static_cast<TOFCommandCode>(code);
+    outPacket.code = code;
     outPacket.argc = argc;
     outPacket.argv.clear();
     for (size_t i = 0; i < argc; ++i) {

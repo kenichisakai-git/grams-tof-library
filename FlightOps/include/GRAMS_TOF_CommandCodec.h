@@ -19,7 +19,7 @@
 class GRAMS_TOF_CommandCodec {
 public:
     struct Packet {
-        TOFCommandCode code;
+        uint16_t code;
         uint16_t argc;
         std::vector<int32_t> argv;
     };

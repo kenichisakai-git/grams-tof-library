@@ -22,7 +22,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 # To the user:
 # This is where you specify the location of the installation directory.
 # You can change this to any directory of your choice where you want the built project to be installed.
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install") 
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/00install")
 
 #ROOT
 if(DEFINED ENV{ROOTSYS})
