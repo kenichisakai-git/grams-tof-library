@@ -5,29 +5,29 @@
 #include <ostream>
 
 enum class TOFCommandCode : uint16_t {
-    START_DAQ                              = 0x0000,
-    STOP_DAQ                               = 0x0001,
-    RESET_DAQ                              = 0x0002,
+    START_DAQ                              = 0x5000,
+    STOP_DAQ                               = 0x5001,
+    RESET_DAQ                              = 0x5002,
 
-    RUN_INIT_SYSTEM                        = 0x0100,
-    RUN_MAKE_BIAS_CALIB_TABLE              = 0x0101,
-    RUN_MAKE_SIMPLE_BIAS_SET_TABLE         = 0x0102,
-    RUN_MAKE_SIMPLE_CHANNEL_MAP            = 0x0103,
-    RUN_MAKE_SIMPLE_DISC_SET_TABLE         = 0x0104,
-    RUN_READ_TEMPERATURE_SENSORS           = 0x0105,
-    RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x0106,
-    RUN_ACQUIRE_QDC_CALIBRATION            = 0x0107,
-    RUN_ACQUIRE_TDC_CALIBRATION            = 0x0108,
-    RUN_ACQUIRE_SIPM_DATA                  = 0x0109,
+    RUN_INIT_SYSTEM                        = 0x5100,
+    RUN_MAKE_BIAS_CALIB_TABLE              = 0x5101,
+    RUN_MAKE_SIMPLE_BIAS_SET_TABLE         = 0x5102,
+    RUN_MAKE_SIMPLE_CHANNEL_MAP            = 0x5103,
+    RUN_MAKE_SIMPLE_DISC_SET_TABLE         = 0x5104,
+    RUN_READ_TEMPERATURE_SENSORS           = 0x5105,
+    RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x5106,
+    RUN_ACQUIRE_QDC_CALIBRATION            = 0x5107,
+    RUN_ACQUIRE_TDC_CALIBRATION            = 0x5108,
+    RUN_ACQUIRE_SIPM_DATA                  = 0x5109,
     
-    RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x0200,
-    RUN_PROCESS_TDC_CALIBRATION            = 0x0201,
-    RUN_PROCESS_QDC_CALIBRATION            = 0x0202,
-    RUN_CONVERT_RAW_TO_SINGLES             = 0x0203,
+    RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x5200,
+    RUN_PROCESS_TDC_CALIBRATION            = 0x5201,
+    RUN_PROCESS_QDC_CALIBRATION            = 0x5202,
+    RUN_CONVERT_RAW_TO_SINGLES             = 0x5203,
 
-    ACK                                    = 0x0FFF,
-    Callback                               = 0x0FFE,
-    HeartBeat                              = 0x0FFD
+    ACK                                    = 0x5FFF,
+    CALLBACK                               = 0x5FFE,
+    HEART_BEAT                             = 0x5FFD
 };
 
 enum class AckStatus : uint8_t {
@@ -57,8 +57,8 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION:         return os << "RUN_PROCESS_QDC_CALIBRATION";
         case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:          return os << "RUN_CONVERT_RAW_TO_SINGLES";
         case TOFCommandCode::ACK:                                 return os << "ACK";
-        case TOFCommandCode::Callback:                            return os << "Callback";
-        case TOFCommandCode::HeartBeat:                           return os << "HeartBeat";
+        case TOFCommandCode::CALLBACK:                            return os << "CALLBACK";
+        case TOFCommandCode::HEART_BEAT:                          return os << "HEART_BEAT";
 
         default:                                                  return os << "UNKNOWN_CODE";
     }
@@ -92,8 +92,8 @@ inline CommunicationCodes toCommCode(TOFCommandCode code) {
         case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:        return CommunicationCodes::TOF_Run_Convert_Raw_To_Singles;
 
         case TOFCommandCode::ACK:                               return CommunicationCodes::TOF_ACK;
-        case TOFCommandCode::Callback:                          return CommunicationCodes::TOF_Callback;
-        case TOFCommandCode::HeartBeat:                         return CommunicationCodes::TOF_HeartBeat;
+        case TOFCommandCode::CALLBACK:                          return CommunicationCodes::TOF_Callback;
+        case TOFCommandCode::HEART_BEAT:                        return CommunicationCodes::TOF_HeartBeat;
 
         default: return CommunicationCodes::TOF_HeartBeat; // safe fallback
     }
@@ -123,10 +123,10 @@ inline TOFCommandCode toTOFCommand(CommunicationCodes code) {
         case CommunicationCodes::TOF_Run_Convert_Raw_To_Singles:        return TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES;
 
         case CommunicationCodes::TOF_ACK:                               return TOFCommandCode::ACK;
-        case CommunicationCodes::TOF_Callback:                          return TOFCommandCode::Callback;
-        case CommunicationCodes::TOF_HeartBeat:                         return TOFCommandCode::HeartBeat;
+        case CommunicationCodes::TOF_Callback:                          return TOFCommandCode::CALLBACK;
+        case CommunicationCodes::TOF_HeartBeat:                         return TOFCommandCode::HEART_BEAT;
 
-        default: return TOFCommandCode::RESET_DAQ; // safe default
+        default: return TOFCommandCode::HEART_BEAT; // safe default
     }
 }
 
