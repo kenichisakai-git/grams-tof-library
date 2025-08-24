@@ -2,22 +2,29 @@
 #include "GRAMS_TOF_PythonIntegration.h"
 #include "GRAMS_TOF_Analyzer.h"
 #include "GRAMS_TOF_CommandServer.h"
+#include "GRAMS_TOF_EventServer.h"
 #include "GRAMS_TOF_CommandDefs.h"
 #include "GRAMS_TOF_CommandDispatch.h"
 #include "GRAMS_TOF_Logger.h"
 #include "GRAMS_TOF_Config.h"
 #include "CLI11.hpp"
 #include <iostream>
+#include <thread>
+#include <chrono>
+#include <atomic>
+#include <signal.h>
 
 int main(int argc, char* argv[]) {
+    signal(SIGPIPE, SIG_IGN);  // Ignore broken pipe signals
     CLI::App app{"GRAMS TOF DAQ Server"};
 
-    // CLI11 options
     bool noFpgaMode = false;
     int serverPort = 12345;
-    
+    int eventPort  = 98765;
+
     app.add_flag("--no-fpga", noFpgaMode, "Skip DAQ initialization for testing without FPGA");
-    app.add_option("--port", serverPort, "Server port");
+    app.add_option("--server-port", serverPort, "Command server port");
+    app.add_option("--event-port", eventPort, "Event server port (CALLBACK/HEART_BEAT)");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -41,7 +48,6 @@ int main(int argc, char* argv[]) {
         {"/dev/psdaq0"}       // daqCards
     );
 
-    // Initialize DAQ if not skipped
     if (!noFpgaMode) {
         if (!daq.initialize()) {
             Logger::instance().info("[System] DAQ initialization failed.");
@@ -58,6 +64,11 @@ int main(int argc, char* argv[]) {
     GRAMS_TOF_Analyzer analyzer;
     GRAMS_TOF_CommandDispatch dispatchTable(pyint, analyzer);
 
+    // Event server
+    GRAMS_TOF_EventServer eventServer(eventPort);
+    eventServer.start();
+
+
     // Command server
     GRAMS_TOF_CommandServer server(
         serverPort,
@@ -67,9 +78,15 @@ int main(int argc, char* argv[]) {
             );
 
             const auto& argv = pkt.argv;
-
             if (!dispatchTable.dispatch(code, argv)) {
                 Logger::instance().error("[CommandServer] Command failed or unknown: {}", code);
+            }
+
+            // Send CALLBACK after each command
+            if (eventServer.sendCallback({static_cast<int32_t>(code)})) {
+                Logger::instance().info("[EventServer] CALLBACK sent for command 0x{:04X}", static_cast<int>(code));
+            } else {
+                Logger::instance().warn("[EventServer] Failed to send CALLBACK for command 0x{:04X}", static_cast<int>(code));
             }
         }
     );
@@ -77,12 +94,15 @@ int main(int argc, char* argv[]) {
     server.start();
 
     Logger::instance().info("[System] Running DAQ and waiting for commands on port {}", serverPort);
+    Logger::instance().info("[System] Event server running on port {}", eventPort);
     Logger::instance().info("[System] Press Enter to quit");
     std::cin.get();
 
+    // Shutdown
     server.stop();
-    Logger::instance().info("[System] Exiting");
+    eventServer.stop();
 
+    Logger::instance().info("[System] Exiting");
     return 0;
 }
 
