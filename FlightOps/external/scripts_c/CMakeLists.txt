@@ -17,7 +17,7 @@ target_link_libraries(GramsTofScriptsCLib PUBLIC Boost::random)
 target_link_libraries(GramsTofScriptsCLib PUBLIC GramsTofRawDataLib)
 
 add_executable(process_threshold_calibration.exe tools/process_threshold_calibration.cpp)
-target_link_libraries(process_threshold_calibration.exe PRIVATE GramsTofScriptsCLib)
+target_link_libraries(process_threshold_calibration.exe PRIVATE GramsTofScriptsCLib cli11)
 
 add_executable(process_qdc_calibration.exe tools/process_qdc_calibration.cpp)
 target_link_libraries(process_qdc_calibration.exe PRIVATE GramsTofScriptsCLib)
