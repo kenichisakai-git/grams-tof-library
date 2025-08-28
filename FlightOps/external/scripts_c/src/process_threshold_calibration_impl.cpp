@@ -79,6 +79,26 @@ static pair<double, double> getBaselineAndNoise(TProfile* profile, TF1* fSigmoid
     }
 }
 
+static int getThresholdForRate(TProfile* profile, double rate) {
+    int threshold = profile->FindFirstBinAbove(rate) - profile->FindBin(0);
+    if (threshold > 63) return 63;
+    else if (threshold < 0) return 63;
+    else return threshold;
+}
+
+static double getDarkWidth(TProfile* profile, double baseline) {
+    int maxBin = profile->GetMaximumBin();
+    while (profile->GetBinCenter(maxBin) > baseline) {
+        --maxBin;
+        if (maxBin <= 0) break;  // safety check
+    }
+
+    double rate1pe = profile->GetBinContent(maxBin);
+    int t1Bin = profile->FindFirstBinAbove(0.5 * rate1pe);
+    double t1 = profile->GetBinCenter(t1Bin);
+
+    return baseline - t1;
+}
 
 bool runProcessThresholdCalibration(const std::string& configFile,
                                     const std::string& inputFilePrefix,
@@ -102,29 +122,46 @@ bool runProcessThresholdCalibration(const std::string& configFile,
 
     TF1* fSigmoid = createSigmoid();
 
+    auto safe_stoi = [](const std::string& s, int lineNo, const std::string& file) -> int {
+        if (s.empty()) throw runtime_error("stoi: empty string at line " + to_string(lineNo) + " in " + file);
+        try { return stoi(s); }
+        catch (...) { throw runtime_error("stoi: invalid integer '" + s + "' at line " + to_string(lineNo) + " in " + file); }
+    };
+
+    auto safe_stod = [](const std::string& s, int lineNo, const std::string& file) -> double {
+        if (s.empty()) throw runtime_error("stod: empty string at line " + to_string(lineNo) + " in " + file);
+        try { return stod(s); }
+        catch (...) { throw runtime_error("stod: invalid double '" + s + "' at line " + to_string(lineNo) + " in " + file); }
+    };
+
+    cout << "Load/Process baseline" << endl;
+
     map<ChannelKey, pair<int, int>> baselineSettings;
     set<ChannelKey> activeChannels;
     set<ChipKey> activeChips;
 
     ifstream infile(inputFilePrefix + "_baseline.tsv");
     string line;
+    int lineNo = 0;
     while (getline(infile, line)) {
+        lineNo++;
         vector<string> tokens = normalizeAndSplit(line);
         if (tokens.empty()) continue;
-        int portID = stoi(tokens[0]);
-        int slaveID = stoi(tokens[1]);
-        int chipID = stoi(tokens[2]);
-        int channelID = stoi(tokens[3]);
-        int baseline_T = stoi(tokens[4]);
-        int baseline_E = stoi(tokens[5]);
+        int portID     = safe_stoi(tokens[0], lineNo, inputFilePrefix + "_baseline.tsv");
+        int slaveID    = safe_stoi(tokens[1], lineNo, inputFilePrefix + "_baseline.tsv");
+        int chipID     = safe_stoi(tokens[2], lineNo, inputFilePrefix + "_baseline.tsv");
+        int channelID  = safe_stoi(tokens[3], lineNo, inputFilePrefix + "_baseline.tsv");
+        int baseline_T = safe_stoi(tokens[4], lineNo, inputFilePrefix + "_baseline.tsv");
+        int baseline_E = safe_stoi(tokens[5], lineNo, inputFilePrefix + "_baseline.tsv");
         ChannelKey ck = {portID, slaveID, chipID, channelID};
         ChipKey chip = {portID, slaveID, chipID};
         baselineSettings[ck] = {baseline_T, baseline_E};
         activeChannels.insert(ck);
         activeChips.insert(chip);
     }
-    infile.close();
+   infile.close();
 
+    cout << "Load/Process noise" << endl;
     map<tuple<int, int, int, int, string>, TProfile*> noiseProfiles;
     for (auto& ck : activeChannels) {
         int portID, slaveID, chipID, channelID;
@@ -137,78 +174,104 @@ bool runProcessThresholdCalibration(const std::string& configFile,
     }
 
     infile.open(inputFilePrefix + "_noise.tsv");
+    lineNo = 0;
     while (getline(infile, line)) {
+        lineNo++;
         vector<string> tokens = normalizeAndSplit(line);
         if (tokens.empty()) continue;
-        int portID = stoi(tokens[0]);
-        int slaveID = stoi(tokens[1]);
-        int chipID = stoi(tokens[2]);
-        int channelID = stoi(tokens[3]);
-        string thresholdName = tokens[4];
-        int thresholdValue = stoi(tokens[5]);
-        double v = stod(tokens[6]) + ((rand() / double(RAND_MAX)) - 0.5) * 1E-6;
-        noiseProfiles[{portID, slaveID, chipID, channelID, thresholdName}]->Fill(thresholdValue, v);
+        if (tokens.size() < 7) {
+            cerr << "Skipping malformed noise line " << lineNo << endl;
+            continue;
+        }
+        int portID       = safe_stoi(tokens[0], lineNo, inputFilePrefix + "_noise.tsv");
+        int slaveID      = safe_stoi(tokens[1], lineNo, inputFilePrefix + "_noise.tsv");
+        int chipID       = safe_stoi(tokens[2], lineNo, inputFilePrefix + "_noise.tsv");
+        int channelID    = safe_stoi(tokens[3], lineNo, inputFilePrefix + "_noise.tsv");
+        string threshold = tokens[4];
+        int thresholdValue   = safe_stoi(tokens[5], lineNo, inputFilePrefix + "_noise.tsv");
+        double v            = safe_stod(tokens[6], lineNo, inputFilePrefix + "_noise.tsv") + ((rand() / double(RAND_MAX)) - 0.5) * 1E-6;
+        noiseProfiles[{portID, slaveID, chipID, channelID, threshold}]->Fill(thresholdValue, v);
     }
     infile.close();
 
-    map<ChannelKey, pair<double, double>> thresholds;
+    cout << "Load/Process dark" << endl;
+    map<tuple<int,int,int,int,string>, TProfile*> darkProfiles;
+    for (auto& ck : activeChannels) {
+        int portID, slaveID, chipID, channelID;
+        tie(portID, slaveID, chipID, channelID) = ck;
+        for (string threshold : {"vth_t1", "vth_t2", "vth_e"}) {
+            string hName  = Form("hDark_%02d_%02d_%02d_%02d_%s", portID, slaveID, chipID, channelID, threshold.c_str());
+            string hTitle = Form("Dark (%02d %02d %02d %02d) %s", portID, slaveID, chipID, channelID, threshold.c_str());
+            darkProfiles[{portID, slaveID, chipID, channelID, threshold}] = new TProfile(hName.c_str(), hTitle.c_str(), 64, 0, 64);
+        }
+    }
+    
+    infile.open(inputFilePrefix + "_dark.tsv");
+    lineNo = 0;
+    while (getline(infile, line)) {
+        lineNo++;
+        vector<string> tokens = normalizeAndSplit(line);
+        if (tokens.empty()) continue;
+    
+        int portID    = safe_stoi(tokens[0], lineNo, inputFilePrefix + "_dark.tsv");
+        int slaveID   = safe_stoi(tokens[1], lineNo, inputFilePrefix + "_dark.tsv");
+        int chipID    = safe_stoi(tokens[2], lineNo, inputFilePrefix + "_dark.tsv");
+        int channelID = safe_stoi(tokens[3], lineNo, inputFilePrefix + "_dark.tsv");
+        string threshold = tokens[4];
+        int thresholdValue = safe_stoi(tokens[5], lineNo, inputFilePrefix + "_dark.tsv");
+        double v = safe_stod(tokens[6], lineNo, inputFilePrefix + "_dark.tsv");
+    
+        darkProfiles[{portID, slaveID, chipID, channelID, threshold}]->Fill(thresholdValue, v);
+    }
+    infile.close();
+
+    map<ChannelKey, pair<double,double>> thresholds;
     map<ChannelKey, double> darkRate;
     map<string, TGraph*> grBaseline, grZero, grNoise;
 
-    infile.open(inputFilePrefix + "_dark.tsv");
-    while (getline(infile, line)) {
-        vector<string> tokens = normalizeAndSplit(line);
-        if (tokens.empty()) continue;
-        int portID = stoi(tokens[0]);
-        int slaveID = stoi(tokens[1]);
-        int chipID = stoi(tokens[2]);
-        int channelID = stoi(tokens[3]);
-        double rate = stod(tokens[4]);
-        ChannelKey ck = {portID, slaveID, chipID, channelID};
-        darkRate[ck] = rate;
-    }
-    infile.close();
-
     ofstream outfile(outFileName);
-    outfile << "portID\tslaveID\tchipID\tchannelID\tvth_t1\tvth_t2\tvth_e\tsigma\tdark" << endl;
+    outfile << "# portID\tslaveID\tchipID\tchannelID\t";
+    outfile << "baseline_T\tbaseline_E\t";
+    outfile << "zero_T1\tzero_T2\tzero_E\t";
+    outfile << "noise_T1\tnoise_T2\tnoise_E\n";
 
     for (auto& ck : activeChannels) {
         int portID, slaveID, chipID, channelID;
         tie(portID, slaveID, chipID, channelID) = ck;
-
-        auto p1 = noiseProfiles[{portID, slaveID, chipID, channelID, "vth_t1"}];
-        auto p2 = noiseProfiles[{portID, slaveID, chipID, channelID, "vth_t2"}];
-        auto pe = noiseProfiles[{portID, slaveID, chipID, channelID, "vth_e"}];
-
-        auto result = getBaselineAndNoise(p1, fSigmoid);
-        double vth_t1 = result.first;
-        double sigma = result.second;
-
-        result = getBaselineAndNoise(p2, fSigmoid);
-        double vth_t2 = result.first;
-
-        result = getBaselineAndNoise(pe, fSigmoid);
-        double vth_e = result.first;
-
-        double noise = sigma * 3.0;
-        double dark = darkRate.count(ck) ? darkRate[ck] : 0;
-
-        thresholds[ck] = {vth_t1, vth_t2};
-
+    
+        // Baseline
+        int baseline_T = baselineSettings[ck].first;
+        int baseline_E = baselineSettings[ck].second;
+    
+        // Zero and noise for each threshold
+        double zero_T1, zero_T2, zero_E;
+        double noise_T1, noise_T2, noise_E;
+    
+        tie(zero_T1, noise_T1) = getBaselineAndNoise(noiseProfiles[{portID, slaveID, chipID, channelID, "vth_t1"}], fSigmoid);
+        tie(zero_T2, noise_T2) = getBaselineAndNoise(noiseProfiles[{portID, slaveID, chipID, channelID, "vth_t2"}], fSigmoid);
+        tie(zero_E, noise_E)   = getBaselineAndNoise(noiseProfiles[{portID, slaveID, chipID, channelID, "vth_e"}], fSigmoid);
+    
+        // Store thresholds for possible later use
+        thresholds[ck] = {zero_T1, zero_T2};
+    
+        // Prepare TGraphs for plotting
         string key = Form("%02d_%02d_%02d", portID, slaveID, chipID);
         if (!grBaseline.count(key)) grBaseline[key] = new TGraph();
-        if (!grZero.count(key)) grZero[key] = new TGraph();
-        if (!grNoise.count(key)) grNoise[key] = new TGraph();
-
+        if (!grZero.count(key))     grZero[key] = new TGraph();
+        if (!grNoise.count(key))    grNoise[key] = new TGraph();
+    
         int index = channelID;
-        grBaseline[key]->SetPoint(index, channelID, vth_e);
-        grZero[key]->SetPoint(index, channelID, vth_t1);
-        grNoise[key]->SetPoint(index, channelID, noise);
-
+        grBaseline[key]->SetPoint(index, channelID, baseline_E);
+        grZero[key]->SetPoint(index, channelID, zero_T1); // Python uses zero_T1 for T1
+        grNoise[key]->SetPoint(index, channelID, noise_T1); // Python noise_T1
+    
+        // Write output exactly like Python
         outfile << portID << '\t' << slaveID << '\t' << chipID << '\t' << channelID << '\t';
-        outfile << int(vth_t1 + 0.5) << '\t' << int(vth_t2 + 0.5) << '\t' << int(vth_e + 0.5) << '\t';
-        outfile << sigma << '\t' << dark << endl;
+        outfile << baseline_T << '\t' << baseline_E << '\t';
+        outfile << zero_T1 << '\t' << zero_T2 << '\t' << zero_E << '\t';
+        outfile << noise_T1 << '\t' << noise_T2 << '\t' << noise_E << '\n';
     }
+    
     outfile.close();
 
     for (auto& chip : activeChips) {
@@ -242,7 +305,7 @@ bool runProcessThresholdCalibration(const std::string& configFile,
         legend->AddEntry(grNoise[key], "3#sigma", "P");
         legend->Draw();
 
-        canvas->Write();
+        canvas->SaveAs(Form("%s_%02d_%02d_%02d.svg", inputFilePrefix.c_str(), portID, slaveID, chipID));
     }
 
     if (rootFile) {
@@ -250,6 +313,6 @@ bool runProcessThresholdCalibration(const std::string& configFile,
         rootFile->Close();
     }
 
-    return 0;
+    return true;
 }
 
