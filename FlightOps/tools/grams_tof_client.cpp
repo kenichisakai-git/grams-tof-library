@@ -108,7 +108,22 @@ int runClient(const std::string& serverIP, int serverPort, int eventPort,
               uint16_t cmdCode, const std::vector<int>& args) {
 
     // Connect to EventServer
-    int eventSock = connectSocket(serverIP, eventPort);
+    int eventSock = -1;
+    for (int attempt = 0; attempt < 5; ++attempt) {
+        try {
+            eventSock = connectSocket(serverIP, eventPort);
+            std::cout << "[Client] Connected to EventServer on attempt " << (attempt+1) << "\n";
+            break;
+        } catch (const std::exception& e) {
+            std::cerr << "[Client] EventServer connection failed: " << e.what()
+                      << " (attempt " << (attempt+1) << "/5)\n";
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
+    if (eventSock < 0) {
+        throw std::runtime_error("Could not connect to EventServer after retries");
+    }
+
     std::atomic<bool> running{true};
     std::thread evtThread(eventListenerThread, eventSock, std::ref(running));
 

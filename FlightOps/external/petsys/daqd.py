@@ -1093,8 +1093,14 @@ class Connection:
 		else:
 			portID, slaveID = trigger
 			triggerID = 32 * portID + slaveID
-		
-		cmd = [ "./write_raw", \
+	
+		glib = os.environ.get("GLIB")
+		if not glib:
+			raise RuntimeError("GLIB environment variable is not set")
+
+		exe_path = os.path.join(glib, "bin", "write_raw.exe")
+	
+		cmd = [ exe_path, \
 			self.__shmName, \
 			fileNamePrefix, \
 			str(int(self.__systemFrequency)), \
