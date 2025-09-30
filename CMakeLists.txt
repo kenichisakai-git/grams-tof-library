@@ -13,8 +13,22 @@ include(ExternalProject)
 # Add some global compiler options
 add_compile_options (-fdiagnostics-color=always)
 
+# Developer-only compiler flags
+option(ENABLE_DEV_FLAGS "Enable developer-only compiler flags (warnings, sanitizers, debug info)" OFF)
+
 # Configure
-set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+if(ENABLE_DEV_FLAGS)
+    message(STATUS "Developer flags enabled: -Wall -Wextra -g -fsanitize=thread")
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -g -fsanitize=thread")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=thread")
+else()
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
+    endif()
+endif()
+
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)

@@ -1,13 +1,21 @@
 #pragma once
+
 #include "GRAMS_TOF_CommandCodec.h"
+#include "GRAMS_TOF_Logger.h"
+#include "GRAMS_TOF_FDManager.h"
+
 #include <thread>
 #include <atomic>
-#include <mutex>
+#include <map>
+#include <memory>
 #include <vector>
+#include <mutex>
+
+class GRAMS_TOF_Client; // forward declaration
 
 class GRAMS_TOF_EventServer {
 public:
-    GRAMS_TOF_EventServer(int port);
+    explicit GRAMS_TOF_EventServer(int port);
     ~GRAMS_TOF_EventServer();
 
     void start();
@@ -17,17 +25,16 @@ public:
     bool sendHeartbeat();
 
 private:
-    void run();               // accept clients
-    void heartbeatLoop();     // internal heartbeat
+    void run();               // Accept clients and handle events
+    void heartbeatLoop();     // Internal heartbeat loop
     bool send(const GRAMS_TOF_CommandCodec::Packet& pkt);
 
     int port_;
-    int server_fd_ = -1;
-    int client_fd_ = -1;
-
     std::thread server_thread_;
     std::thread heartbeat_thread_;
     std::atomic<bool> running_{false};
-    std::mutex client_mutex_;
+
+    std::map<int, std::unique_ptr<GRAMS_TOF_Client>> clientList_;
+    std::mutex clientListMutex_;  // only needed for adding/removing clients
 };
 

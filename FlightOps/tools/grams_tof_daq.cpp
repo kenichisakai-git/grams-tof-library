@@ -7,14 +7,32 @@
 #include "GRAMS_TOF_CommandDispatch.h"
 #include "GRAMS_TOF_Logger.h"
 #include "GRAMS_TOF_Config.h"
+#include "GRAMS_TOF_FDManager.h"
 #include "CLI11.hpp"
+
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <atomic>
 #include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+// Ensure stdin/stdout/stderr are valid
+void ensureStandardFDs() {
+    for (int fd = 0; fd <= 2; ++fd) {
+        if (fcntl(fd, F_GETFD) == -1 && errno == EBADF) {
+            int newfd = open("/dev/null", O_RDWR);
+            if (newfd != fd) {
+                dup2(newfd, fd);
+                close(newfd);
+            }
+        }
+    }
+}
 
 int main(int argc, char* argv[]) {
+    ensureStandardFDs();
     signal(SIGPIPE, SIG_IGN);  // Ignore broken pipe signals
     CLI::App app{"GRAMS TOF DAQ Server"};
 
@@ -67,7 +85,6 @@ int main(int argc, char* argv[]) {
     // Event server
     GRAMS_TOF_EventServer eventServer(eventPort);
     eventServer.start();
-
 
     // Command server
     GRAMS_TOF_CommandServer server(

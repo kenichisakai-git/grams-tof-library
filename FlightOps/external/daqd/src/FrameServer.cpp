@@ -18,6 +18,8 @@ using namespace PETSYS;
 
 void FrameServer::allocateSharedMemory(const char * shmName, int &shmfd, RawDataFrame * &shmPtr)
 {
+  shm_unlink(shmName);
+
 	shmfd = shm_open(shmName, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 	if(shmfd < 0) {
 		perror("Error creating shared memory");
