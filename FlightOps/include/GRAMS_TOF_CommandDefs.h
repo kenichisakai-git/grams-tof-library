@@ -27,7 +27,8 @@ enum class TOFCommandCode : uint16_t {
 
     ACK                                    = 0x5FFF,
     CALLBACK                               = 0x5FFE,
-    HEART_BEAT                             = 0x5FFD
+    HEART_BEAT                             = 0x5FFD,
+    DUMMY_TEST                             = 0x5FFC
 };
 
 enum class AckStatus : uint8_t {
@@ -59,6 +60,7 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::ACK:                                 return os << "ACK";
         case TOFCommandCode::CALLBACK:                            return os << "CALLBACK";
         case TOFCommandCode::HEART_BEAT:                          return os << "HEART_BEAT";
+        case TOFCommandCode::DUMMY_TEST:                          return os << "DUMMY_TEST";
 
         default:                                                  return os << "UNKNOWN_CODE";
     }
@@ -94,6 +96,7 @@ inline CommunicationCodes toCommCode(TOFCommandCode code) {
         case TOFCommandCode::ACK:                               return CommunicationCodes::TOF_ACK;
         case TOFCommandCode::CALLBACK:                          return CommunicationCodes::TOF_Callback;
         case TOFCommandCode::HEART_BEAT:                        return CommunicationCodes::TOF_HeartBeat;
+        case TOFCommandCode::DUMMY_TEST:                        return CommunicationCodes::TOF_DummyTest;
 
         default: return CommunicationCodes::TOF_HeartBeat; // safe fallback
     }
@@ -125,6 +128,7 @@ inline TOFCommandCode toTOFCommand(CommunicationCodes code) {
         case CommunicationCodes::TOF_ACK:                               return TOFCommandCode::ACK;
         case CommunicationCodes::TOF_Callback:                          return TOFCommandCode::CALLBACK;
         case CommunicationCodes::TOF_HeartBeat:                         return TOFCommandCode::HEART_BEAT;
+        case CommunicationCodes::TOF_DummyTest:                         return TOFCommandCode::DUMMY_TEST;
 
         default: return TOFCommandCode::HEART_BEAT; // safe default
     }

@@ -67,16 +67,53 @@ void sendPacket(int sock, const GRAMS_TOF_CommandCodec::Packet& pkt) {
 }
 
 // --- Function to receive a packet ---
-GRAMS_TOF_CommandCodec::Packet receivePacket(int sock) {
+GRAMS_TOF_CommandCodec::Packet receivePacket(int sock, int timeoutSec = 5) {
+    struct timeval tv{};
+    tv.tv_sec = timeoutSec;
+    tv.tv_usec = 0;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
     std::vector<uint8_t> buffer(1024);
     ssize_t n = recv(sock, buffer.data(), buffer.size(), 0);
-    if (n <= 0) throw std::runtime_error("Receive failed or server closed connection");
+
+    if (n < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            throw std::runtime_error("Receive timed out");
+        } else {
+            throw std::runtime_error("Receive failed");
+        }
+    } else if (n == 0) {
+        throw std::runtime_error("Server closed connection");
+    }
 
     GRAMS_TOF_CommandCodec::Packet pkt;
     if (!GRAMS_TOF_CommandCodec::parse({buffer.begin(), buffer.begin() + n}, pkt)) {
         throw std::runtime_error("Failed to parse packet");
     }
     return pkt;
+}
+
+// --- Wait for ACK/NACK with timeout ---
+GRAMS_TOF_CommandCodec::Packet waitForAck(int sock, int maxMinutes = 60) {
+    auto start = std::chrono::steady_clock::now();
+    while (true) {
+        try {
+            return receivePacket(sock, 10);
+        } catch (const std::exception& e) {
+            if (std::string(e.what()) == "Receive timed out") {
+                auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(
+                                   std::chrono::steady_clock::now() - start);
+                if (elapsed.count() >= maxMinutes) {
+                    throw std::runtime_error("Timeout waiting for ACK (exceeded maxMinutes)");
+                }
+                std::cout << "[Client] Still waiting for ACK... "
+                          << elapsed.count() << " minutes elapsed\n";
+                continue;
+            } else {
+                throw;
+            }
+        }
+    }
 }
 
 // --- Event listener thread with timestamps ---
@@ -105,7 +142,8 @@ void eventListenerThread(int eventSock, std::atomic<bool>& running) {
 
 // --- Main client logic ---
 int runClient(const std::string& serverIP, int serverPort, int eventPort,
-              uint16_t cmdCode, const std::vector<int>& args) {
+              uint16_t cmdCode, const std::vector<int>& args,
+              bool no_wait = false) {
 
     // Connect to EventServer
     int eventSock = -1;
@@ -138,7 +176,7 @@ int runClient(const std::string& serverIP, int serverPort, int eventPort,
 
     // Receive ACK/NACK
     try {
-        auto ackPkt = receivePacket(cmdSock);
+        auto ackPkt = waitForAck(cmdSock, 60);
         std::cout << "[Client] Received ACK/NACK packet, code=0x" << std::hex << ackPkt.code
                   << ", argc=" << std::dec << ackPkt.argv.size() << "\n";
         if (!ackPkt.argv.empty()) {
@@ -153,14 +191,19 @@ int runClient(const std::string& serverIP, int serverPort, int eventPort,
 
     close(cmdSock);
 
-    std::cout << "[Client] Press Enter to quit and stop event listener...\n";
-    std::cin.get();
+    if (!no_wait) {
+        std::cout << "[Client] Press Enter to quit and stop event listener...\n";
+        std::cin.get();
+    } else {
+        // brief grace period to allow immediate events to arrive
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
-    // Stop event listener
+    // Stop event listener safely
     running = false;
-    shutdown(eventSock, SHUT_RDWR);
-    close(eventSock);
+    shutdown(eventSock, SHUT_RD);
     if (evtThread.joinable()) evtThread.join();
+    close(eventSock);
 
     return 0;
 }
@@ -174,18 +217,20 @@ int main(int argc, char* argv[]) {
     std::string serverIP = "127.0.0.1";
     int serverPort = 12345;
     int eventPort  = 98765;
+    bool no_wait = false;
 
     app.add_option("code", codeStr, "Command code")->required();
     app.add_option("args", args, "Command arguments")->expected(-1);
     app.add_option("--ip", serverIP, "Server IP");
     app.add_option("--server-port", serverPort, "Command server port");
     app.add_option("--event-port", eventPort, "Event server port");
+    app.add_flag("--no-wait,-n", no_wait, "Do not wait for Enter; exit automatically after ACK");
 
     CLI11_PARSE(app, argc, argv);
 
     try {
         uint16_t cmdCode = parseCommandCode(codeStr);
-        return runClient(serverIP, serverPort, eventPort, cmdCode, args);
+        return runClient(serverIP, serverPort, eventPort, cmdCode, args, no_wait);
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;

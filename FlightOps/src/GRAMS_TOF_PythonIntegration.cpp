@@ -10,7 +10,6 @@
 #include <Python.h>
 #include <filesystem>
 
-// Only one place for bindings in your project!
 PYBIND11_EMBEDDED_MODULE(grams_tof, m) {
     pybind11::class_<GRAMS_TOF_DAQManager>(m, "DAQManager")
         .def(pybind11::init<const std::string&, const std::string&, int, const std::string&, const std::vector<std::string>&>(),
@@ -18,7 +17,7 @@ PYBIND11_EMBEDDED_MODULE(grams_tof, m) {
              pybind11::arg("shmName"),
              pybind11::arg("debugLevel"),
              pybind11::arg("daqType"),
-             pybind11::arg("daqCards"));
+             pybind11::arg("daqCards")); 
 }
 
 namespace {

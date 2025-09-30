@@ -1,20 +1,34 @@
-// GRAMS_TOF_DAQManager.h
 #pragma once
 
 #include "DAQFrameServer.h"
+#include "GRAMS_TOF_Client.h"
+#include "GRAMS_TOF_FDManager.h"
 
-#include <cstring>
+#include <string>
 #include <vector>
+#include <map>
+#include <memory>
 
 class GRAMS_TOF_DAQManager {
 public:
-    GRAMS_TOF_DAQManager(const std::string& socketPath, const std::string& shmName, int debugLevel, const std::string& daqType, const std::vector<std::string>& daqCards);
+    GRAMS_TOF_DAQManager(
+        const std::string& socketPath,
+        const std::string& shmName,
+        int debugLevel,
+        const std::string& daqType,
+        const std::vector<std::string>& daqCards);
+
     ~GRAMS_TOF_DAQManager();
 
     bool initialize();
     bool run();
     void stop();
     void reset();
+
+private:
+    int createListeningSocket();
+    void pollSocket();
+    void cleanup();
 
 private:
     std::string socketPath_;
@@ -24,16 +38,12 @@ private:
     std::vector<std::string> daqCardList_;
     unsigned daqCardPortBits_;
 
-    int clientSocket_;
     int shmfd_;
     PETSYS::RawDataFrame* shmPtr_;
     PETSYS::FrameServer* frameServer_;
     std::vector<PETSYS::AbstractDAQCard*> daqCards_;
-    
     bool is_acq_running_;
 
-    int createListeningSocket();
-    void pollSocket();
-    void cleanup();
+    // FDs are now managed via GRAMS_TOF_FDManager singleton
 };
 

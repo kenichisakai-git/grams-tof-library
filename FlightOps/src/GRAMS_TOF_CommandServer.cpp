@@ -1,53 +1,12 @@
 #include "GRAMS_TOF_CommandServer.h"
-#include "GRAMS_TOF_CommandCodec.h"
 #include "GRAMS_TOF_Logger.h"
-#include <iostream>
-#include <sstream>
-#include <cstring>      // for memset
-#include <netinet/in.h> // for sockaddr_in
-#include <unistd.h>     // for close()
 
-// Helper to build ACK/NACK packets
-static GRAMS_TOF_CommandCodec::Packet buildAckPacket(
-    const GRAMS_TOF_CommandCodec::Packet& original,
-    AckStatus status)
-{
-    GRAMS_TOF_CommandCodec::Packet ack;
-    ack.code = static_cast<uint16_t>(tof_bridge::toCommCode(TOFCommandCode::ACK)); 
-    ack.argc = 2;
-    ack.argv = {
-        static_cast<int32_t>(original.code), // original command code
-        static_cast<int32_t>(status)         // SUCCESS or FAILURE
-    };
-    return ack;
-}
-
-// Overload for parse failure
-static GRAMS_TOF_CommandCodec::Packet buildAckPacketForFailure()
-{
-    GRAMS_TOF_CommandCodec::Packet ack;
-    ack.code = static_cast<uint16_t>(tof_bridge::toCommCode(TOFCommandCode::ACK)); 
-    ack.argc = 2;
-    ack.argv = { 
-        -1,                                       // -1 = invalid command code
-        static_cast<int32_t>(AckStatus::FAILURE)  // NACK
-    };
-    return ack;
-}
-
-static ssize_t safeWrite(int sock, const uint8_t* data, size_t size) {
-    size_t totalWritten = 0;
-    while (totalWritten < size) {
-        ssize_t n = write(sock, data + totalWritten, size - totalWritten);
-        if (n < 0) {
-            if (errno == EINTR) continue; // retry if interrupted
-            Logger::instance().error("[CommandServer] Write error: {}", std::strerror(errno));
-            return n;
-        }
-        totalWritten += n;
-    }
-    return totalWritten;
-}
+#include <netinet/in.h>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <cstring>
+#include <csignal>
+#include <vector>
 
 GRAMS_TOF_CommandServer::GRAMS_TOF_CommandServer(int port, CommandHandler handler)
     : port_(port), handler_(std::move(handler)), running_(false) {}
@@ -57,100 +16,165 @@ GRAMS_TOF_CommandServer::~GRAMS_TOF_CommandServer() {
 }
 
 void GRAMS_TOF_CommandServer::start() {
-    if (!running_) {
-        running_ = true;
-        server_thread_ = std::thread(&GRAMS_TOF_CommandServer::run, this);
-    }
+    if (running_) return;
+    running_ = true;
+    server_thread_ = std::thread(&GRAMS_TOF_CommandServer::run, this);
 }
 
 void GRAMS_TOF_CommandServer::stop() {
-    if (running_) {
-        running_ = false;
-        if (server_thread_.joinable()) {
-            server_thread_.join();
-        }
+    if (!running_) return;
+    running_ = false;
+
+    if (server_thread_.joinable()) server_thread_.join();
+
+    std::lock_guard<std::mutex> lock(clientListMutex_);
+    for (auto& pair : clientList_) {
+        pair.second->closeFD();
     }
+    clientList_.clear();
+
+    GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::COMMAND);
 }
 
 void GRAMS_TOF_CommandServer::run() {
-    int server_fd, new_socket;
-    sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
-
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        Logger::instance().error("[CommandServer] Socket failed");
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        Logger::instance().error("[CommandServer] socket() failed: {}", std::strerror(errno));
         return;
     }
 
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
-    memset(&address, 0, sizeof(address));
+    GRAMS_TOF_FDManager::instance().setServerFD(ServerKind::COMMAND, fd);
+    Logger::instance().debug("[CommandServer] FD addr = {}",
+        GRAMS_TOF_FDManager::instance().debug_getServerFDAddress(ServerKind::COMMAND));
+
+    int opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
+
+    sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port_);
 
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-        Logger::instance().error("[CommandServer] Bind failed on port {}", port_);
-        close(server_fd);
+    if (bind(fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+        Logger::instance().error("[CommandServer] bind() failed on port {}: {}", port_, std::strerror(errno));
+        GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::COMMAND);
         return;
     }
-    if (listen(server_fd, 3) < 0) {
-        Logger::instance().error("[CommandServer] Listen failed");
-        close(server_fd);
+
+    if (listen(fd, 10) < 0) {
+        Logger::instance().error("[CommandServer] listen() failed: {}", std::strerror(errno));
+        GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::COMMAND);
         return;
     }
-    Logger::instance().info("[CommandServer] Listening on port {}", port_);
+
+    int epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1) {
+        Logger::instance().error("[CommandServer] epoll_create1 failed: {}", std::strerror(errno));
+        GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::COMMAND);
+        return;
+    }
+
+    struct epoll_event event{};
+    event.data.fd = GRAMS_TOF_FDManager::instance().getServerFD(ServerKind::COMMAND);
+    event.events = EPOLLIN;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, GRAMS_TOF_FDManager::instance().getServerFD(ServerKind::COMMAND), &event) == -1) {
+        Logger::instance().error("[CommandServer] epoll_ctl failed: {}", std::strerror(errno));
+        GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::COMMAND);
+        ::close(epoll_fd);
+        return;
+    }
+
+    sigset_t mask, omask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGTERM);
+
+    const size_t buffer_size = 1024;
+    uint8_t buffer[buffer_size];
 
     while (running_) {
-        fd_set set;
-        struct timeval timeout = {1, 0};  // 1 sec timeout
-        FD_ZERO(&set);
-        FD_SET(server_fd, &set);
-        int rv = select(server_fd + 1, &set, NULL, NULL, &timeout);
-        if (rv == 0) continue; // timeout
-        if (rv < 0) break;     // error
+        memset(&event, 0, sizeof(event));
+        sigprocmask(SIG_BLOCK, &mask, &omask);
+        int nReady = epoll_pwait(epoll_fd, &event, 1, 100, &omask);
+        sigprocmask(SIG_SETMASK, &omask, nullptr);
+        if (nReady <= 0) continue;
 
-        new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-        if (new_socket < 0) continue;     // accept failed
+        int fd_in_event = event.data.fd;
 
-        char buffer[512] = {0};
-        ssize_t valread = read(new_socket, buffer, sizeof(buffer));
+        if (fd_in_event == GRAMS_TOF_FDManager::instance().getServerFD(ServerKind::COMMAND)) {
+            int new_fd = accept(GRAMS_TOF_FDManager::instance().getServerFD(ServerKind::COMMAND), nullptr, nullptr);
+            if (new_fd <= 2) { ::close(new_fd); continue; }
 
-        if (valread > 0) {
-            std::vector<uint8_t> data(buffer, buffer + valread);
-            GRAMS_TOF_CommandCodec::Packet pkt;
-            if (GRAMS_TOF_CommandCodec::parse(data, pkt)) {
-        
-                // Default to SUCCESS unless handler reports otherwise
-                AckStatus status = AckStatus::SUCCESS;
-                try {
-                    handler_(pkt);
-                } catch (const std::exception& e) {
-                    Logger::instance().error("[CommandServer] Handler error: {}", e.what());
-                    status = AckStatus::FAILURE;
-                } catch (...) {
-                    Logger::instance().error("[CommandServer] Unknown handler error");
-                    status = AckStatus::FAILURE;
-                }
-        
-                // Send ACK (or NACK) back to client
-                auto ackPkt = buildAckPacket(pkt, status);
-                auto ackBytes = GRAMS_TOF_CommandCodec::serialize(ackPkt);
-                safeWrite(new_socket, ackBytes.data(), ackBytes.size());
+            event.data.fd = new_fd;
+            event.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_fd, &event) == -1) {
+                Logger::instance().error("[CommandServer] epoll_ctl add client_fd failed: {}", std::strerror(errno));
+                ::close(new_fd);
+                continue;
+            }
+
+            Logger::instance().info("[CommandServer] Accepted client_fd={}", new_fd);
+            std::lock_guard<std::mutex> lock(clientListMutex_);
+            clientList_[new_fd] = std::make_unique<GRAMS_TOF_Client>(new_fd);
+        } else {
+            std::unique_ptr<GRAMS_TOF_Client>* clientPtr = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(clientListMutex_);
+                auto it = clientList_.find(fd_in_event);
+                if (it != clientList_.end()) clientPtr = &it->second;
+            }
+            if (!clientPtr) continue;
+
+            auto& client = **clientPtr;
+            ssize_t n = client.recvData(buffer, buffer_size);
+
+            bool shouldClose = false;
+
+            if (n <= 0 || (event.events & EPOLLHUP) || (event.events & EPOLLERR)) {
+                Logger::instance().info("[CommandServer] Closing client_fd={}", fd_in_event);
+                shouldClose = true;
             } else {
-                Logger::instance().error("[CommandServer] Failed to parse incoming packet");
-        
-                // Send NACK for parse failure
-                auto nackPkt = buildAckPacket(
-                    GRAMS_TOF_CommandCodec::Packet{},  // Empty original packet
-                    AckStatus::FAILURE
-                );
-                auto nackBytes = GRAMS_TOF_CommandCodec::serialize(nackPkt);
-                safeWrite(new_socket, nackBytes.data(), nackBytes.size());
+                GRAMS_TOF_CommandCodec::Packet pkt;
+                if (GRAMS_TOF_CommandCodec::parse(std::vector<uint8_t>(buffer, buffer + n), pkt)) {
+
+                    // Send ACK to client
+                    GRAMS_TOF_CommandCodec::Packet ackPkt;
+                    ackPkt.code = static_cast<uint16_t>(tof_bridge::toCommCode(TOFCommandCode::ACK));
+                    ackPkt.argc = 0;
+                    ackPkt.argv.clear();
+                    client.sendData(GRAMS_TOF_CommandCodec::serialize(ackPkt).data(),
+                                    GRAMS_TOF_CommandCodec::serialize(ackPkt).size());
+
+                    Logger::instance().info("[CommandServer] ACK sent for command 0x{:04X}", static_cast<int>(pkt.code));
+
+                    // --- Now handle the command ---
+                    handler_(pkt);
+
+                    // For one-shot connection, close after ACK
+                    shouldClose = true;
+                }
+            }
+
+            if (shouldClose) {
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd_in_event, nullptr);
+                client.closeFD();
+                std::lock_guard<std::mutex> lock(clientListMutex_);
+                clientList_.erase(fd_in_event);
             }
         }
-        close(new_socket);
     }
-    close(server_fd);
+
+    // Cleanup remaining clients
+    {
+        std::lock_guard<std::mutex> lock(clientListMutex_);
+        for (auto& pair : clientList_) {
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pair.first, nullptr);
+            pair.second->closeFD();
+        }
+        clientList_.clear();
+    }
+
+    ::close(epoll_fd);
+    GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::COMMAND);
 }
 
