@@ -4,6 +4,30 @@ message("${BMagenta}[============ Entering TOF Base Subdirectory ============]${
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB HEADERS "include/*.h")
 
+# --- iniparser ---
+set(INIPARSER_INCLUDE_DIR $ENV{INIPARSER_INCLUDE_DIR} CACHE PATH "iniparser include dir")
+set(INIPARSER_LIBRARY $ENV{INIPARSER_LIBRARY} CACHE FILEPATH "iniparser library")
+
+if(NOT EXISTS ${INIPARSER_INCLUDE_DIR}/iniparser/iniparser.h OR NOT EXISTS ${INIPARSER_LIBRARY})
+  message(FATAL_ERROR "iniparser not found. Please export INIPARSER_INCLUDE_DIR and INIPARSER_LIBRARY.")
+endif()
+
+include_directories(${INIPARSER_INCLUDE_DIR})
+
+# --- Python & Boost ---
+find_package(PythonLibs 3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS python3 regex)
+
+# --- Platform-specific flags ---
+if(UNIX AND NOT APPLE)
+  add_definitions(-DLINUX)
+endif()
+
+# --- Include and link directories ---
+include_directories(${PYTHON_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
+link_libraries(${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+
 find_path(INIPARSER_INCLUDE_DIR NAMES iniparser.h PATHS /usr/include/iniparser)
 find_library(INIPARSER_LIBRARY NAMES iniparser)
 
@@ -19,7 +43,8 @@ target_include_directories(GramsTofBaseLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/FlightOps>
 )
-target_link_libraries(GramsTofBaseLib PUBLIC iniparser)
+#target_link_libraries(GramsTofBaseLib PUBLIC iniparser)
+target_link_libraries(GramsTofBaseLib PUBLIC ${INIPARSER_LIBRARY})
 
 install(TARGETS GramsTofBaseLib
     EXPORT GramsTofLibraryTargets

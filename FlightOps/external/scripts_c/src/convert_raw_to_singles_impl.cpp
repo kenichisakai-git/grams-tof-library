@@ -297,7 +297,7 @@ public:
 	void report() { };
 };
 
-void displayHelp(char * program)
+static void displayHelp(char * program)
 {
 	fprintf(stderr, "Usage: %s --config <config_file> -i <input_file_prefix> -o <output_file_prefix> [optional arguments]\n", program);
 	fprintf(stderr, "Arguments:\n");
@@ -313,7 +313,7 @@ void displayHelp(char * program)
 	
 };
 
-void displayUsage(char *argv0)
+static void displayUsage(char *argv0)
 {
 	printf("Usage: %s --config <config_file> -i <input_file_prefix> -o <output_file_prefix> [optional arguments]\n", argv0);
 }

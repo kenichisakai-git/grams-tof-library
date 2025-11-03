@@ -4,30 +4,16 @@ message("${BMagenta}[============ Entering TOF Daqd Subdirectory ============]${
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB HEADERS "include/*.h")
 
-find_program(LSB_RELEASE_EXEC lsb_release REQUIRED)
-execute_process(COMMAND ${LSB_RELEASE_EXEC} -is
-  OUTPUT_VARIABLE LSB_ID_SHORT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-execute_process(COMMAND ${LSB_RELEASE_EXEC} -rs
-  OUTPUT_VARIABLE LSB_RELEASE_SHORT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-find_package(PythonLibs 3.6 REQUIRED)
-if((${LSB_ID_SHORT} STREQUAL "Ubuntu") AND (${LSB_RELEASE_SHORT} VERSION_LESS_EQUAL "20.04"))
-  find_package(Boost REQUIRED python regex)
-elseif((EXISTS "/etc/redhat-release") AND (${LSB_RELEASE_SHORT} VERSION_GREATER_EQUAL "9"))
-  find_package(Boost REQUIRED python39 regex)
-else()
-  find_package(Boost REQUIRED python3 regex)
-endif()
+find_package(PythonLibs 3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS python3 regex)
 
 if(UNIX AND NOT APPLE)
-set( CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -DLINUX" )
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLINUX" )
-set( CMAKE_REQUIRED_DEFINITIONS -DLINUX )
+  add_definitions(-DLINUX)
 endif()
+
+include_directories(${PYTHON_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS})
+link_libraries(${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 ########################################################################################################################
 # Make a lib for all the stuff

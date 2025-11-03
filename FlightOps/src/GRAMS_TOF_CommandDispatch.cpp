@@ -301,6 +301,25 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
         }
     };
 
+
+    // RUN_CONVERT_RAW_TO_RAW
+    table_[TOFCommandCode::RUN_CONVERT_RAW_TO_RAW] = [&](const std::vector<int>& argv) {
+        try {
+            Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Converting raw to raw...");
+            long long eventFractionToWrite = argv.size() > 1 ? static_cast<long long>(argv[0]) : 1024;
+
+            return analyzer_.runPetsysConvertRawToSingles(
+                config.getConfigFilePath(),
+                "run_test",
+                "run_test_raw.root",
+                eventFractionToWrite
+            );
+        } catch (...) {
+            Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_CONVERT_RAW_TO_RAW");
+            return false;
+        }
+    };
+
     // RUN_CONVERT_RAW_TO_SINGLES
     table_[TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES] = [&](const std::vector<int>& argv) {
         try {

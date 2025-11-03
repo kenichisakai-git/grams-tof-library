@@ -27,6 +27,11 @@ public:
                                         bool keepTemporary = false,
                                         float nominalM = 200.0f);
 
+    bool runPetsysConvertRawToRaw(const std::string& configFileName,
+                                  const std::string& inputFilePrefix,
+                                  const std::string& outputFileName,
+                                  long long eventFractionToWrite = 1024);
+
     bool runPetsysConvertRawToSingles(const std::string& configFileName,
                                       const std::string& inputFilePrefix,
                                       const std::string& outputFileName,

@@ -7,13 +7,18 @@
 #include <string.h>
 #include <list>
 #include <assert.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <getopt.h>
+
+#ifdef __linux__
 #include <sys/sysinfo.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -249,7 +254,14 @@ static void sortData(const char *inputFilePrefix, const char *tmpFilePrefix)
           throw std::runtime_error(oss.str());
 				}
 				setbuffer(f, new char[BUFFER_SIZE], BUFFER_SIZE);
-				posix_fadvise(fileno(f), 0, 0, POSIX_FADV_SEQUENTIAL);
+				//posix_fadvise(fileno(f), 0, 0, POSIX_FADV_SEQUENTIAL);
+        #ifdef __linux__
+        posix_fadvise(fileno(f), 0, 0, POSIX_FADV_SEQUENTIAL);
+        #elif defined(__APPLE__)
+        int fd = fileno(f);
+        int readahead_flag = 1;
+        fcntl(fd, F_RDAHEAD, readahead_flag);
+        #endif
 				tmpDataFiles[gAsicID] = f;
 				tmpDataFileNames[gAsicID] = fn;
 			}
@@ -649,11 +661,25 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 	 * The calibration process needs to read the temporary file size multiple times
 	 * which is very slow if the system does not have enough RAM to cache the files
 	 */
-	struct sysinfo si;
-	sysinfo(&si);
-	int maxWorkersByMem = si.totalram * si.mem_unit / (1LL * 1024*1024*1024 + max_tmp_file_size);
-	int maxWorkers = (nCPU < maxWorkersByMem) ? nCPU : maxWorkersByMem;
-	
+
+  int64_t totalRamBytes = 0;
+
+  #ifdef __linux__
+  struct sysinfo si;
+  sysinfo(&si);
+  totalRamBytes = si.totalram * si.mem_unit;
+  #else
+  size_t len = sizeof(totalRamBytes);
+  int ret = sysctlbyname("hw.memsize", &totalRamBytes, &len, NULL, 0);
+  if (ret != 0) {
+    perror("sysctlbyname");
+    totalRamBytes = 4LL * 1024 * 1024 * 1024; // fallback 4GB
+  }
+  #endif
+
+  int maxWorkersByMem = totalRamBytes / (1LL * 1024 * 1024 * 1024 + max_tmp_file_size);
+  int maxWorkers = (nCPU < maxWorkersByMem) ? nCPU : maxWorkersByMem;
+
 	// Ensure we have at least one worker or the software does not run properly
 	maxWorkers = maxWorkers > 1 ? maxWorkers : 1;
 	

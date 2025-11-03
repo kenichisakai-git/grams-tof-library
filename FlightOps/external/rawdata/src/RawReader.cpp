@@ -13,7 +13,7 @@
 #include <libgen.h>
 #include <limits.h>
 #include <boost/algorithm/string/replace.hpp>
-
+#include <sstream>
 
 using namespace std;
 using namespace PETSYS;
@@ -210,7 +210,9 @@ int RawReader::readFromDataFile(char *buf, int count)
 			dataFileBufferEnd = dataFileBuffer + r;
 
 			off_t current = lseek(dataFile, 0, SEEK_CUR);
+#ifdef __linux__
 			readahead(dataFile, current, dataFileBufferSize);
+#endif
 		}
 
 		int countRemaining = count - rval;

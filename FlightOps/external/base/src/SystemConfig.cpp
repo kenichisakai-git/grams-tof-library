@@ -8,9 +8,11 @@
 #include <limits.h>
 #include <string>
 #include <boost/algorithm/string/replace.hpp>
+#include <sstream>
 
 extern "C" {
-#include <iniparser.h>
+//#include <iniparser.h>
+#include <iniparser/iniparser.h>
 }
 
 using namespace PETSYS;

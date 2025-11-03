@@ -15,7 +15,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifdef __linux__
 #include <sys/epoll.h>
+#elif defined(__APPLE__)
+#include <sys/event.h>
+#endif
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <unistd.h>
