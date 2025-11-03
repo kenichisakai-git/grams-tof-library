@@ -23,7 +23,8 @@ enum class TOFCommandCode : uint16_t {
     RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x5200,
     RUN_PROCESS_TDC_CALIBRATION            = 0x5201,
     RUN_PROCESS_QDC_CALIBRATION            = 0x5202,
-    RUN_CONVERT_RAW_TO_SINGLES             = 0x5203,
+    RUN_CONVERT_RAW_TO_RAW                 = 0x5203,
+    RUN_CONVERT_RAW_TO_SINGLES             = 0x5204,
 
     ACK                                    = 0x5FFF,
     CALLBACK                               = 0x5FFE,
@@ -56,6 +57,7 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION:   return os << "RUN_PROCESS_THRESHOLD_CALIBRATION";
         case TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION:         return os << "RUN_PROCESS_TDC_CALIBRATION";
         case TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION:         return os << "RUN_PROCESS_QDC_CALIBRATION";
+        case TOFCommandCode::RUN_CONVERT_RAW_TO_RAW:              return os << "RUN_CONVERT_RAW_TO_RAW";
         case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:          return os << "RUN_CONVERT_RAW_TO_SINGLES";
         case TOFCommandCode::ACK:                                 return os << "ACK";
         case TOFCommandCode::CALLBACK:                            return os << "CALLBACK";
@@ -91,6 +93,7 @@ inline CommunicationCodes toCommCode(TOFCommandCode code) {
         case TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION: return CommunicationCodes::TOF_Run_Process_Threshold_Calibration;
         case TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Process_TDC_Calibration;
         case TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Process_QDC_Calibration;
+        case TOFCommandCode::RUN_CONVERT_RAW_TO_RAW:            return CommunicationCodes::TOF_Run_Convert_Raw_To_Raw;
         case TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES:        return CommunicationCodes::TOF_Run_Convert_Raw_To_Singles;
 
         case TOFCommandCode::ACK:                               return CommunicationCodes::TOF_ACK;
@@ -123,6 +126,7 @@ inline TOFCommandCode toTOFCommand(CommunicationCodes code) {
         case CommunicationCodes::TOF_Run_Process_Threshold_Calibration: return TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION;
         case CommunicationCodes::TOF_Run_Process_TDC_Calibration:       return TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION;
         case CommunicationCodes::TOF_Run_Process_QDC_Calibration:       return TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Convert_Raw_To_Raw:            return TOFCommandCode::RUN_CONVERT_RAW_TO_RAW;
         case CommunicationCodes::TOF_Run_Convert_Raw_To_Singles:        return TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES;
 
         case CommunicationCodes::TOF_ACK:                               return TOFCommandCode::ACK;

@@ -2,6 +2,7 @@
 #include "process_threshold_calibration.h"
 #include "process_tdc_calibration.h"
 #include "process_qdc_calibration.h"
+#include "convert_raw_to_raw.h"
 #include "convert_raw_to_singles.h"
 
 bool GRAMS_TOF_Analyzer::runPetsysProcessThresholdCalibration(
@@ -43,6 +44,18 @@ bool GRAMS_TOF_Analyzer::runPetsysProcessQdcCalibration(
                    runProcessQdcCalibration,
                    configFileName, inputFilePrefix, outputFilePrefix,
                    tmpFilePrefix, doSorting, keepTemporary, nominalM);
+}
+
+bool GRAMS_TOF_Analyzer::runPetsysConvertRawToRaw(
+    const std::string& configFileName,
+    const std::string& inputFilePrefix,
+    const std::string& outputFileName,
+    long long eventFractionToWrite)
+{
+    return safeRun("runPetsysConvertRawToRaw",
+                   runConvertRawToRaw,
+                   configFileName, inputFilePrefix, outputFileName,
+                   eventFractionToWrite);
 }
 
 bool GRAMS_TOF_Analyzer::runPetsysConvertRawToSingles(

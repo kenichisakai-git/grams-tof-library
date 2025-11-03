@@ -81,7 +81,8 @@ enum class CommunicationCodes : uint16_t {
   TOF_Run_Process_Threshold_Calibration = construct_code(0x200, COM_SUBSYSTEM_TOF_MSK),
   TOF_Run_Process_QDC_Calibration = construct_code(0x201, COM_SUBSYSTEM_TOF_MSK),
   TOF_Run_Process_TDC_Calibration = construct_code(0x202, COM_SUBSYSTEM_TOF_MSK),
-  TOF_Run_Convert_Raw_To_Singles = construct_code(0x203, COM_SUBSYSTEM_TOF_MSK),
+  TOF_Run_Convert_Raw_To_Raw = construct_code(0x203, COM_SUBSYSTEM_TOF_MSK),
+  TOF_Run_Convert_Raw_To_Singles = construct_code(0x204, COM_SUBSYSTEM_TOF_MSK),
 
   TOF_ACK       = construct_code(0xFFF, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
   TOF_Callback  = construct_code(0xFFE, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota

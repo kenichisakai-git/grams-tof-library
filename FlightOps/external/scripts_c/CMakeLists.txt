@@ -28,6 +28,9 @@ target_link_libraries(process_tdc_calibration.exe PRIVATE GramsTofScriptsCLib)
 add_executable(convert_raw_to_singles.exe tools/convert_raw_to_singles.cpp)
 target_link_libraries(convert_raw_to_singles.exe PRIVATE GramsTofScriptsCLib)
 
+add_executable(convert_raw_to_raw.exe tools/convert_raw_to_raw.cpp)
+target_link_libraries(convert_raw_to_raw.exe PRIVATE GramsTofScriptsCLib)
+
 install(TARGETS GramsTofScriptsCLib
     EXPORT GramsTofLibraryTargets
     LIBRARY DESTINATION lib
@@ -48,6 +51,10 @@ install(TARGETS process_tdc_calibration.exe
 )
 
 install(TARGETS convert_raw_to_singles.exe
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+)
+
+install(TARGETS convert_raw_to_raw.exe
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 

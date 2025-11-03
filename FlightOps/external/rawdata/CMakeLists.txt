@@ -4,31 +4,20 @@ message("${BMagenta}[============ Entering TOF RawData Subdirectory ============
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB HEADERS "include/*.h")
 
-find_program(LSB_RELEASE_EXEC lsb_release REQUIRED)
-execute_process(COMMAND ${LSB_RELEASE_EXEC} -is
-  OUTPUT_VARIABLE LSB_ID_SHORT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-execute_process(COMMAND ${LSB_RELEASE_EXEC} -rs
-  OUTPUT_VARIABLE LSB_RELEASE_SHORT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# --- Python & Boost ---
+find_package(PythonLibs 3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS python3 regex)
 
-find_package(PythonLibs 3.6 REQUIRED)
-if((${LSB_ID_SHORT} STREQUAL "Ubuntu") AND (${LSB_RELEASE_SHORT} VERSION_LESS_EQUAL "20.04"))
-  find_package(Boost REQUIRED python regex)
-elseif((EXISTS "/etc/redhat-release") AND (${LSB_RELEASE_SHORT} VERSION_GREATER_EQUAL "9"))
-  find_package(Boost REQUIRED python39 regex)
-else()
-  find_package(Boost REQUIRED python3 regex)
+# --- Platform-specific flags ---
+if(UNIX AND NOT APPLE)
+    add_definitions(-DLINUX)
 endif()
 
+# --- Include directories ---
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
-link_libraries(${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
-########################################################################################################################
-# Build a Python module (no lib prefix)
+# --- Build a Python module (no lib prefix) ---
 add_library(shm_raw_py MODULE ${SOURCES})
 set_target_properties(shm_raw_py PROPERTIES
     PREFIX ""
@@ -38,22 +27,27 @@ target_include_directories(shm_raw_py PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/FlightOps>
 )
-target_link_libraries(shm_raw_py PUBLIC rt)
-target_link_libraries(shm_raw_py PUBLIC GramsTofBaseLib)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(shm_raw_py PUBLIC rt)
+endif()
+target_link_libraries(shm_raw_py PUBLIC GramsTofBaseLib ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
-# C++ shared library
+# --- C++ shared library ---
 add_library(GramsTofRawDataLib SHARED ${SOURCES})
 target_include_directories(GramsTofRawDataLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/FlightOps>
 )
-target_link_libraries(GramsTofRawDataLib PUBLIC rt)
-target_link_libraries(GramsTofRawDataLib PUBLIC GramsTofBaseLib)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(GramsTofRawDataLib PUBLIC rt)
+endif()
+target_link_libraries(GramsTofRawDataLib PUBLIC GramsTofBaseLib ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
-
+# --- Executable ---
 add_executable(write_raw.exe tools/write_raw.cpp)
 target_link_libraries(write_raw.exe PRIVATE GramsTofRawDataLib)
 
+# --- Install ---
 install(TARGETS shm_raw_py
     LIBRARY DESTINATION petsys
 )
@@ -63,9 +57,5 @@ install(TARGETS GramsTofRawDataLib
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
-)
-
-install(TARGETS write_raw.exe
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
