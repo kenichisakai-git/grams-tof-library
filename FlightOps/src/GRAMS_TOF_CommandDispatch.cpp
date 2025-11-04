@@ -308,7 +308,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Converting raw to raw...");
             long long eventFractionToWrite = argv.size() > 1 ? static_cast<long long>(argv[0]) : 1024;
 
-            return analyzer_.runPetsysConvertRawToSingles(
+            return analyzer_.runPetsysConvertRawToRaw(
                 config.getConfigFilePath(),
                 "run_test",
                 "run_test_raw.root",
