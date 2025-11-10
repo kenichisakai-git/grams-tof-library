@@ -138,10 +138,7 @@ int GRAMS_TOF_DAQManager::createListeningSocket() {
 
 void GRAMS_TOF_DAQManager::pollSocket() {
     int epoll_fd = epoll_create(10);
-    if (epoll_fd == -1) {
-        perror("epoll_create()");
-        return;
-    }
+    if (epoll_fd == -1) { perror("epoll_create()"); return; }
 
     struct epoll_event event = {};
     event.data.fd = GRAMS_TOF_FDManager::instance().getServerFD(ServerKind::DAQ);
@@ -152,8 +149,12 @@ void GRAMS_TOF_DAQManager::pollSocket() {
         ::close(epoll_fd);
         return;
     }
-
-    std::map<int, std::unique_ptr<GRAMS_TOF_Client>> clientList;
+    // DEBUG
+    // Use PETSYS::Client to manage DAQ connections.
+    // Definitely don't use GRAMS_TOF_Client. 
+    // It's only for the Event and Command servers. 
+    // I lost some time before realizing that.
+    std::map<int, std::unique_ptr<Client>> clientList;
 
     sigset_t mask, omask;
     sigemptyset(&mask);
@@ -173,17 +174,13 @@ void GRAMS_TOF_DAQManager::pollSocket() {
 
         if (fd_in_event == GRAMS_TOF_FDManager::instance().getServerFD(ServerKind::DAQ)) {
             int new_fd = accept(fd_in_event, nullptr, nullptr);
-            if (new_fd == -1 || new_fd <= 2) { ::close(new_fd); continue; }
-
-            // Single client mode: replace old client
-            if (!clientList.empty()) {
-                auto it = clientList.begin();
-                it->second->closeFD();
-                clientList.erase(it);
+            if (new_fd == -1 || new_fd <= 2) { 
+                if (new_fd != -1) ::close(new_fd); 
+                continue; 
             }
 
             fprintf(stderr, "[DAQManager] Got new client_fd=%d (server_fd=%d)\n",
-                    new_fd, fd_in_event);
+                         new_fd, fd_in_event);
 
             event.data.fd = new_fd;
             event.events = EPOLLIN | EPOLLERR | EPOLLHUP;
@@ -193,26 +190,43 @@ void GRAMS_TOF_DAQManager::pollSocket() {
                 continue;
             }
 
-            clientList[new_fd] = std::make_unique<GRAMS_TOF_Client>(new_fd);
+            // New: Create PETSYS::Client, passing the socket and the FrameServer
+            clientList[new_fd] = std::make_unique<Client>(new_fd, frameServer_); 
 
         } else {
             auto it = clientList.find(fd_in_event);
             if (it == clientList.end()) continue;
 
-            GRAMS_TOF_Client* client = it->second.get();
-            if ((event.events & EPOLLHUP) || (event.events & EPOLLERR) || client->recvData(nullptr, 0) == -1) {
-                fprintf(stderr, "[DAQManager] Closing client_fd=%d\n", fd_in_event);
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd_in_event, nullptr);
-                client->closeFD();
-                clientList.erase(it);
+            Client* client = it->second.get();
+
+            // New: Check for errors/hang-ups first
+            if ((event.events & EPOLLHUP) || (event.events & EPOLLERR)) {
+                 fprintf(stderr, "[DAQManager] Client hung up or error on client_fd=%d\n", fd_in_event);
+                 goto client_cleanup;
             }
+
+            // New: Use the generic handleRequest() for all commands
+            if (event.events & EPOLLIN) {
+                int actionStatus = client->handleRequest();
+                if (actionStatus == -1) {
+                    fprintf(stderr, "[DAQManager] Error handling request from client_fd=%d\n", fd_in_event);
+                    goto client_cleanup;
+                }
+            }
+            continue; // Go back to poll
+
+        // New Cleanup Block
+        client_cleanup:
+            fprintf(stderr, "[DAQManager] Closing client_fd=%d\n", fd_in_event);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd_in_event, nullptr);
+            // Client destructor (called on erase) handles closing the socket
+            clientList.erase(it);
         }
     }
 
     // Cleanup remaining clients
     for (auto& pair : clientList) {
         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pair.first, nullptr);
-        pair.second->closeFD();
     }
     clientList.clear();
 
@@ -220,6 +234,7 @@ void GRAMS_TOF_DAQManager::pollSocket() {
     GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::DAQ);
     unlink(socketPath_.c_str());
 }
+
 
 void GRAMS_TOF_DAQManager::cleanup() {
     if (frameServer_) delete frameServer_;

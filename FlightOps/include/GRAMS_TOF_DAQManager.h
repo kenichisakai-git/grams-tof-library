@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DAQFrameServer.h"
-#include "GRAMS_TOF_Client.h"
+#include "Client.h"
 #include "GRAMS_TOF_FDManager.h"
 
 #include <string>
