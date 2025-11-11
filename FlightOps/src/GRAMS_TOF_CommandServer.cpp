@@ -151,7 +151,7 @@ void GRAMS_TOF_CommandServer::run() {
                     handler_(pkt);
 
                     // For one-shot connection, close after ACK
-                    shouldClose = true;
+                    //shouldClose = trueu; //DEBUG for persistent model
                 }
             }
 
