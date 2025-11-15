@@ -68,6 +68,16 @@ std::string GRAMS_TOF_Config::getFileStem(const std::string& section, const std:
     return std::filesystem::path(pathStr).stem().string();
 }
 
+std::string GRAMS_TOF_Config::getFileStemWithDir(const std::string& section, const std::string& key) const {
+    std::string pathStr = getString(section, key);
+    std::filesystem::path p(pathStr);
+    return (p.parent_path() / p.stem()).string(); 
+}
+
+std::string GRAMS_TOF_Config::getSubDir(const std::string& subDirName) const {
+    return (std::filesystem::path(configDir_) / subDirName).string();
+}
+
 int GRAMS_TOF_Config::getInt(const std::string& section, const std::string& key) const {
     return std::stoi(getString(section, key));
 }

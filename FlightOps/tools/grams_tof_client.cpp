@@ -215,8 +215,11 @@ int main(int argc, char* argv[]) {
     std::string codeStr;
     std::vector<int> args;
     std::string serverIP = "127.0.0.1";
-    int serverPort = 12345;
-    int eventPort  = 98765;
+    // --- PORTS MODIFIED TO MATCH network.cfg [TOF] ---
+    int serverPort = 50007; // Command server port (comport)
+    int eventPort  = 50006; // Event server port (telport: CALLBACK/HEART_BEAT)
+    // -------------------------------------------------
+
     bool no_wait = false;
 
     app.add_option("code", codeStr, "Command code")->required();

@@ -37,8 +37,10 @@ int main(int argc, char* argv[]) {
     CLI::App app{"GRAMS TOF DAQ Server"};
 
     bool noFpgaMode = false;
-    int serverPort = 12345;
-    int eventPort  = 98765;
+    // --- PORTS MODIFIED TO MATCH network.cfg [TOF] ---
+    int serverPort = 50007; // Command server port (comport)
+    int eventPort  = 50006; // Event server port (telport: CALLBACK/HEART_BEAT)
+    // -------------------------------------------------
 
     app.add_flag("--no-fpga", noFpgaMode, "Skip DAQ initialization for testing without FPGA");
     app.add_option("--server-port", serverPort, "Command server port");

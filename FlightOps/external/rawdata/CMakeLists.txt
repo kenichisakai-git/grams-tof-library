@@ -59,3 +59,7 @@ install(TARGETS GramsTofRawDataLib
     RUNTIME DESTINATION bin
 )
 
+install(TARGETS write_raw.exe
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+)
+

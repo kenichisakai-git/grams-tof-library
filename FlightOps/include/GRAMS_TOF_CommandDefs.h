@@ -16,8 +16,8 @@ enum class TOFCommandCode : uint16_t {
     RUN_MAKE_SIMPLE_DISC_SET_TABLE         = 0x5104,
     RUN_READ_TEMPERATURE_SENSORS           = 0x5105,
     RUN_ACQUIRE_THRESHOLD_CALIBRATION      = 0x5106,
-    RUN_ACQUIRE_QDC_CALIBRATION            = 0x5107,
-    RUN_ACQUIRE_TDC_CALIBRATION            = 0x5108,
+    RUN_ACQUIRE_TDC_CALIBRATION            = 0x5107,
+    RUN_ACQUIRE_QDC_CALIBRATION            = 0x5108,
     RUN_ACQUIRE_SIPM_DATA                  = 0x5109,
     
     RUN_PROCESS_THRESHOLD_CALIBRATION      = 0x5200,
@@ -50,8 +50,8 @@ inline std::ostream& operator<<(std::ostream& os, TOFCommandCode code) {
         case TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE:      return os << "RUN_MAKE_SIMPLE_DISC_SET_TABLE";
         case TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS:        return os << "RUN_READ_TEMPERATURE_SENSORS";
         case TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION:   return os << "RUN_ACQUIRE_THRESHOLD_CALIBRATION";
-        case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:         return os << "RUN_ACQUIRE_QDC_CALIBRATION";
         case TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION:         return os << "RUN_ACQUIRE_TDC_CALIBRATION";
+        case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:         return os << "RUN_ACQUIRE_QDC_CALIBRATION";
         case TOFCommandCode::RUN_ACQUIRE_SIPM_DATA:               return os << "RUN_ACQUIRE_SIPM_DATA";
         
         case TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION:   return os << "RUN_PROCESS_THRESHOLD_CALIBRATION";
@@ -86,8 +86,8 @@ inline CommunicationCodes toCommCode(TOFCommandCode code) {
         case TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE:    return CommunicationCodes::TOF_Run_Make_Simple_Disc_Set_Table;
         case TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS:      return CommunicationCodes::TOF_Run_Read_Temperature_Sensors;
         case TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION: return CommunicationCodes::TOF_Run_Acquire_Threshold_Calibration;
-        case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Acquire_QDC_Calibration;
         case TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Acquire_TDC_Calibration;
+        case TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION:       return CommunicationCodes::TOF_Run_Acquire_QDC_Calibration;
         case TOFCommandCode::RUN_ACQUIRE_SIPM_DATA:             return CommunicationCodes::TOF_Run_Acquire_SiPM_Data;
 
         case TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION: return CommunicationCodes::TOF_Run_Process_Threshold_Calibration;
@@ -119,8 +119,8 @@ inline TOFCommandCode toTOFCommand(CommunicationCodes code) {
         case CommunicationCodes::TOF_Run_Make_Simple_Disc_Set_Table:    return TOFCommandCode::RUN_MAKE_SIMPLE_DISC_SET_TABLE;
         case CommunicationCodes::TOF_Run_Read_Temperature_Sensors:      return TOFCommandCode::RUN_READ_TEMPERATURE_SENSORS;
         case CommunicationCodes::TOF_Run_Acquire_Threshold_Calibration: return TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION;
-        case CommunicationCodes::TOF_Run_Acquire_QDC_Calibration:       return TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION;
         case CommunicationCodes::TOF_Run_Acquire_TDC_Calibration:       return TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION;
+        case CommunicationCodes::TOF_Run_Acquire_QDC_Calibration:       return TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION;
         case CommunicationCodes::TOF_Run_Acquire_SiPM_Data:             return TOFCommandCode::RUN_ACQUIRE_SIPM_DATA;
 
         case CommunicationCodes::TOF_Run_Process_Threshold_Calibration: return TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION;
