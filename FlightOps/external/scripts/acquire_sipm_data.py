@@ -16,19 +16,19 @@ def acquire_sipm_data(config_path, file_name_prefix, acquisition_time, mode, hw_
 
     validParams = ["OV", "vth_t1", "vth_t2", "vth_e", "disc_lsb_t1"]
 
-    if param_table is not None:
+    if param_table:  # None or "" will evaluate to False
         if not os.path.exists(param_table):
             print("Error: no such file - %s" % param_table)
             return False
-
+    
         table = pandas.read_table(param_table)
         parNames = list(table)
-
+    
         for name in parNames:
             if name not in validParams:
-                print(("Error: Invalid parameter - %s" % name))
+                print("Error: Invalid parameter - %s" % name)
                 return False
-
+    
         step1Values = list(table[parNames[0]])
         if len(parNames) == 2:
             step2Values = list(table[parNames[1]])
@@ -42,6 +42,7 @@ def acquire_sipm_data(config_path, file_name_prefix, acquisition_time, mode, hw_
         parNames = []
         step1Values = []
         step2Values = []
+        param_table = None 
 
     mask = config.LOAD_ALL
     if mode != "mixed":

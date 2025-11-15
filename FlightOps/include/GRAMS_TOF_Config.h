@@ -11,6 +11,8 @@ public:
 
     std::string getString(const std::string& section, const std::string& key) const;
     std::string getFileStem(const std::string& section, const std::string& key) const;
+    std::string getFileStemWithDir(const std::string& section, const std::string& key) const;
+    std::string getSubDir(const std::string& subDirName) const;
     int getInt(const std::string& section, const std::string& key) const;
     double getDouble(const std::string& section, const std::string& key) const;
 

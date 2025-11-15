@@ -130,7 +130,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_simple_channel_map.py script...");
             return pyint_.runPetsysMakeSimpleChannelMap(
                 "scripts.make_simple_channel_map",
-                config.getString("main", "channel_map")
+                config.getSubDir("map")
             );
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_MAKE_SIMPLE_CHANNEL_MAP");
@@ -148,7 +148,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
                 argv.size() > 0 ? argv[0] : 20,
                 argv.size() > 1 ? argv[1] : 20,
                 argv.size() > 2 ? argv[2] : 15,
-                config.getString("main", "disc_calibration_table")
+                config.getString("main", "disc_settings_table")
             );
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_MAKE_SIMPLE_DISC_SET_TABLE");
@@ -267,8 +267,8 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
             return analyzer_.runPetsysProcessTdcCalibration(
                 config.getConfigFilePath(),
                 config.getFileStem("main", "tdc_calibration_table"),
-                config.getFileStem("main", "tdc_calibration_table"),
-                config.getFileStem("main", "tdc_calibration_table"),
+                config.getFileStemWithDir("main", "tdc_calibration_table"),
+                config.getFileStemWithDir("main", "tdc_calibration_table"),
                 doSorting,
                 keepTmp,
                 nominalM
@@ -289,8 +289,8 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
             return analyzer_.runPetsysProcessQdcCalibration(
                 config.getConfigFilePath(),
                 config.getFileStem("main", "qdc_calibration_table"),
-                config.getFileStem("main", "qdc_calibration_table"),
-                config.getFileStem("main", "qdc_calibration_table"),
+                config.getFileStemWithDir("main", "qdc_calibration_table"),
+                config.getFileStemWithDir("main", "qdc_calibration_table"),
                 doSorting,
                 keepTmp,
                 nominalM
