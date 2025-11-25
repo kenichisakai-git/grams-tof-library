@@ -140,7 +140,7 @@ void GRAMS_TOF_CommandServer::run() {
                     // Send ACK to client
                     GRAMS_TOF_CommandCodec::Packet ackPkt;
                     ackPkt.code = static_cast<uint16_t>(tof_bridge::toCommCode(TOFCommandCode::ACK));
-                    ackPkt.argc = 0;
+                    ackPkt.argc = 1;
                     ackPkt.argv.clear();
                     client.sendData(GRAMS_TOF_CommandCodec::serialize(ackPkt).data(),
                                     GRAMS_TOF_CommandCodec::serialize(ackPkt).size());

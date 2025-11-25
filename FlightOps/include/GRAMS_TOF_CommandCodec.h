@@ -15,6 +15,7 @@
 #include "GRAMS_TOF_CommandDefs.h"
 #include <vector>
 #include <cstdint>
+#include <optional>
 
 class GRAMS_TOF_CommandCodec {
 public:
@@ -28,7 +29,10 @@ public:
     static bool parse(const std::vector<uint8_t>& data, Packet& outPacket);
 
     // Serialize Packet into raw bytes
-    static std::vector<uint8_t> serialize(const Packet& packet);
+    static std::vector<uint8_t> serialize(const Packet& packet, std::optional<uint16_t> fixedCrc = std::nullopt);
+
+    // Calculates the total size of the packet as it appears on the wire (including headers, footers, etc.).
+    static size_t getPacketSize(const Packet& packet);
 
 private:
     static uint16_t computeCRC16_CCITT_1021(const uint8_t* data, size_t len);
