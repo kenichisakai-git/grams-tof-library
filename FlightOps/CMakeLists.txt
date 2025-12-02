@@ -47,6 +47,9 @@ else()
 
     add_executable(grams_tof_client_daq.exe tools/grams_tof_client_daq.cpp)
     target_link_libraries(grams_tof_client_daq.exe PRIVATE GramsTofFlightOpsLib cli11)
+
+    add_executable(test_grams_tof_client_daq.exe tools/test_grams_tof_client_daq.cpp)
+    target_link_libraries(test_grams_tof_client_daq.exe PRIVATE GramsTofFlightOpsLib cli11 curses)
  
     add_executable(test_grams_tof_config.exe tools/test_grams_tof_config.cpp)
     target_link_libraries(test_grams_tof_config.exe PRIVATE GramsTofFlightOpsLib)
@@ -66,6 +69,9 @@ else()
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
     install(TARGETS grams_tof_client_daq.exe
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+    )
+    install(TARGETS test_grams_tof_client_daq.exe
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
     install(TARGETS test_grams_tof_config.exe
