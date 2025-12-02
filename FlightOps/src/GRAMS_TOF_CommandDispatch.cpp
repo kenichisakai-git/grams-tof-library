@@ -342,6 +342,21 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
         }
     };
 
+    // HEART_BEAT
+    table_[TOFCommandCode::HEART_BEAT] = [&](const std::vector<int>&) {
+        try {
+            Logger::instance().detail("[GRAMS_TOF_CommandDispatch] Received HEART_BEAT from Hub");
+            
+            // No execution needed, just acknowledge
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            return true;
+        } catch (...) {
+            Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in HEART_BEAT");
+            return false; // signal failure, though this should almost never happen
+        }
+    };
+
     // DUMMY_TEST
     table_[TOFCommandCode::DUMMY_TEST] = [&](const std::vector<int>&) {
         try {

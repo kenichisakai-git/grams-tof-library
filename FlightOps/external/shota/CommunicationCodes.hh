@@ -86,14 +86,13 @@ enum class CommunicationCodes : uint16_t {
 
   TOF_ACK       = construct_code(0xFFF, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
   TOF_Callback  = construct_code(0xFFE, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
-  TOF_HeartBeat = construct_code(0xFFD, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
+  TOF_Status    = construct_code(0xFFD, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
   TOF_DummyTest = construct_code(0xFFC, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
 
   // TOF Bias
   TOF_Bias_ON = construct_code(0x0, COM_SUBSYSTEM_TOF_BIAS_MSK),
   TOF_Bias_OFF = construct_code(0x1, COM_SUBSYSTEM_TOF_BIAS_MSK),
   TOF_Bias_Set_Voltage = construct_code(0x2, COM_SUBSYSTEM_TOF_BIAS_MSK),
-
 };
 
 // Functions
