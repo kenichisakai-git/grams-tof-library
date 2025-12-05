@@ -245,9 +245,14 @@ bool  RawReader::getNextStep() {
 
 	else {
 
-		while(fscanf(indexFile, "%f\t", &stepValue1) < 1);
-		while(fscanf(indexFile, "%f\t", &stepValue2) < 1);
-		while(fscanf(indexFile, "%llu\t", &stepBegin) < 1);
+    //DEBUG: First aid 
+		//while(fscanf(indexFile, "%f\t", &stepValue1) < 1);
+		//while(fscanf(indexFile, "%f\t", &stepValue2) < 1);
+		//while(fscanf(indexFile, "%llu\t", &stepBegin) < 1);
+    if(fscanf(indexFile, "%f\t", &stepValue1) < 1) return false;
+    if(fscanf(indexFile, "%f\t", &stepValue2) < 1) return false;
+    if(fscanf(indexFile, "%llu\t", &stepBegin) < 1) return false;
+
 		stepEnd = ULLONG_MAX;
 
 		if(stepBegin < ULLONG_MAX)
