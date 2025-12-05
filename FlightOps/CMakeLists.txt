@@ -82,6 +82,7 @@ else()
     install(DIRECTORY external/petsys/  DESTINATION ${CMAKE_INSTALL_PREFIX}/petsys)
     install(DIRECTORY external/scripts/ DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
     install(DIRECTORY external/config/  DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
+    install(DIRECTORY sh/               DESTINATION ${CMAKE_INSTALL_PREFIX}/sh)
 
     # ----------------- External Libraries -----------------
     add_subdirectory(external/base)
