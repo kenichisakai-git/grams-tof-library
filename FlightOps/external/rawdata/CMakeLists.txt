@@ -44,8 +44,8 @@ endif()
 target_link_libraries(GramsTofRawDataLib PUBLIC GramsTofBaseLib ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 # --- Executable ---
-add_executable(write_raw.exe tools/write_raw.cpp)
-target_link_libraries(write_raw.exe PRIVATE GramsTofRawDataLib)
+add_executable(write_raw tools/write_raw.cpp)
+target_link_libraries(write_raw PRIVATE GramsTofRawDataLib)
 
 # --- Install ---
 install(TARGETS shm_raw_py
@@ -59,7 +59,7 @@ install(TARGETS GramsTofRawDataLib
     RUNTIME DESTINATION bin
 )
 
-install(TARGETS write_raw.exe
+install(TARGETS write_raw
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 
