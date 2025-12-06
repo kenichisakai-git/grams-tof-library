@@ -25,9 +25,9 @@ target_include_directories(GramsTofDaqdLib PUBLIC
 )
 target_link_libraries(GramsTofDaqdLib PUBLIC GramsTofRawDataLib)
 
-add_executable(daqd.exe tools/daqd.cpp)
-target_link_libraries(daqd.exe PRIVATE GramsTofDaqdLib)
-target_link_libraries(daqd.exe PRIVATE rt)
+add_executable(daqd tools/daqd.cpp)
+target_link_libraries(daqd PRIVATE GramsTofDaqdLib)
+target_link_libraries(daqd PRIVATE rt)
 
 install(TARGETS GramsTofDaqdLib
     EXPORT GramsTofLibraryTargets
@@ -36,7 +36,7 @@ install(TARGETS GramsTofDaqdLib
     RUNTIME DESTINATION bin
 )
 
-install(TARGETS daqd.exe
+install(TARGETS daqd
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
 

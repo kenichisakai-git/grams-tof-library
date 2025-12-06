@@ -43,16 +43,39 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_MACOSX_RPATH TRUE)
 
-#ROOT
+# ROOT setup
 if(DEFINED ENV{ROOTSYS})
-  message("Found ROOTSYS at $ENV{ROOTSYS}")
+  message(STATUS "Found ROOTSYS at $ENV{ROOTSYS}")
+  list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 else()
-  message("ROOTSYS not found.  Searching in /cern.")
-  message("  => This will match the first ROOT install it finds, which might not be what you want!")
-  list(APPEND CMAKE_PREFIX_PATH /cern)     # enable searches in old-school cern paths
+  message(STATUS "ROOTSYS not found. Searching in /cern")
+  message(STATUS "  => This will match the first ROOT install it finds, which might not be what you want!")
+  list(APPEND CMAKE_PREFIX_PATH /cern)  # enable searches in old-school CERN paths
 endif()
+
+# Try to find ROOT using CMake package first
 find_package(ROOT REQUIRED)
-include(${ROOT_USE_FILE})
+if(ROOT_FOUND)
+  message(STATUS "ROOT found via find_package: ${ROOT_DIR}")
+  include(${ROOT_USE_FILE})
+else()
+  message(STATUS "find_package(ROOT) failed. Falling back to root-config...")
+
+  # Fallback using root-config
+  execute_process(COMMAND root-config --incdir OUTPUT_VARIABLE ROOT_INCDIR)
+  string(STRIP ${ROOT_INCDIR} ROOT_INCDIR)
+
+  execute_process(COMMAND root-config --libs OUTPUT_VARIABLE ROOT_LIBS)
+  string(STRIP ${ROOT_LIBS} ROOT_LIBS)
+
+  execute_process(COMMAND root-config --cflags OUTPUT_VARIABLE ROOT_CXX_FLAGS)
+  string(STRIP ${ROOT_CXX_FLAGS} ROOT_CXX_FLAGS)
+
+  # Apply ROOT settings
+  include_directories(${ROOT_INCDIR})
+  link_libraries(${ROOT_LIBS})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ROOT_CXX_FLAGS}")
+endif()
 
 add_subdirectory(FlightOps)
 #install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tool/ DESTINATION ${CMAKE_INSTALL_PREFIX}/Tool)

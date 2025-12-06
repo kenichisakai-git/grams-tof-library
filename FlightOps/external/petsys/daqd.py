@@ -1098,7 +1098,7 @@ class Connection:
 		if not glib:
 			raise RuntimeError("GLIB environment variable is not set")
 
-		exe_path = os.path.join(glib, "bin", "write_raw.exe")
+		exe_path = os.path.join(glib, "bin", "write_raw")
 	
 		cmd = [ exe_path, \
 			self.__shmName, \
@@ -1107,8 +1107,10 @@ class Connection:
 			str(qdcMode), "%1.12f" % self.getAcquisitionStartTime(),
 			calMode and 'T' or 'N', 
 			str(triggerID) ]
-		self.__writerPipe = subprocess.Popen(cmd, bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
-		
+
+		#self.__writerPipe = subprocess.Popen(cmd, bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
+		self.__writerPipe = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
+
 		if monitor_exec is not None:
 			cmd = [
 				monitor_exec,

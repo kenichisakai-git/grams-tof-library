@@ -39,20 +39,20 @@ else()
     )
 
     # ----------------- Executables -----------------
-    add_executable(grams_tof_server_daq.exe tools/grams_tof_server_daq.cpp)
-    target_link_libraries(grams_tof_server_daq.exe PRIVATE GramsTofFlightOpsLib cli11)
+    add_executable(grams_tof_server_daq tools/grams_tof_server_daq.cpp)
+    target_link_libraries(grams_tof_server_daq PRIVATE GramsTofFlightOpsLib cli11)
 
-    add_executable(test_grams_tof_server_daq.exe tools/test_grams_tof_server_daq.cpp)
-    target_link_libraries(test_grams_tof_server_daq.exe PRIVATE GramsTofFlightOpsLib cli11)
+    add_executable(test_grams_tof_server_daq tools/test_grams_tof_server_daq.cpp)
+    target_link_libraries(test_grams_tof_server_daq PRIVATE GramsTofFlightOpsLib cli11)
 
-    add_executable(grams_tof_client_daq.exe tools/grams_tof_client_daq.cpp)
-    target_link_libraries(grams_tof_client_daq.exe PRIVATE GramsTofFlightOpsLib cli11)
+    add_executable(grams_tof_client_daq tools/grams_tof_client_daq.cpp)
+    target_link_libraries(grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11)
 
-    add_executable(test_grams_tof_client_daq.exe tools/test_grams_tof_client_daq.cpp)
-    target_link_libraries(test_grams_tof_client_daq.exe PRIVATE GramsTofFlightOpsLib cli11 curses)
+    add_executable(test_grams_tof_client_daq tools/test_grams_tof_client_daq.cpp)
+    target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 curses)
  
-    add_executable(test_grams_tof_config.exe tools/test_grams_tof_config.cpp)
-    target_link_libraries(test_grams_tof_config.exe PRIVATE GramsTofFlightOpsLib)
+    add_executable(test_grams_tof_config tools/test_grams_tof_config.cpp)
+    target_link_libraries(test_grams_tof_config PRIVATE GramsTofFlightOpsLib)
 
     # ----------------- Install Targets -----------------
     install(TARGETS GramsTofFlightOpsLib
@@ -62,19 +62,19 @@ else()
         RUNTIME DESTINATION bin
     )
 
-    install(TARGETS grams_tof_server_daq.exe
+    install(TARGETS grams_tof_server_daq
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
-    install(TARGETS test_grams_tof_server_daq.exe
+    install(TARGETS test_grams_tof_server_daq
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
-    install(TARGETS grams_tof_client_daq.exe
+    install(TARGETS grams_tof_client_daq
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
-    install(TARGETS test_grams_tof_client_daq.exe
+    install(TARGETS test_grams_tof_client_daq
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
-    install(TARGETS test_grams_tof_config.exe
+    install(TARGETS test_grams_tof_config
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
     )
 
