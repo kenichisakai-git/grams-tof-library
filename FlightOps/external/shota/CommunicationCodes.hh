@@ -84,10 +84,10 @@ enum class CommunicationCodes : uint16_t {
   TOF_Run_Convert_Raw_To_Raw = construct_code(0x203, COM_SUBSYSTEM_TOF_MSK),
   TOF_Run_Convert_Raw_To_Singles = construct_code(0x204, COM_SUBSYSTEM_TOF_MSK),
 
-  TOF_ACK       = construct_code(0xFFF, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
-  TOF_Callback  = construct_code(0xFFE, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
-  TOF_Status    = construct_code(0xFFD, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
-  TOF_DummyTest = construct_code(0xFFC, COM_SUBSYSTEM_TOF_MSK), // DEBUG: Will be overwrite by Shota
+  TOF_ACK       = construct_code(0xFFF, COM_SUBSYSTEM_TOF_MSK), // DEBUG: new 
+  TOF_Callback  = construct_code(0xFFE, COM_SUBSYSTEM_TOF_MSK), // DEBUG: new 
+  TOF_Status    = construct_code(0xFFD, COM_SUBSYSTEM_TOF_MSK), // DEBUG, new 
+  TOF_DummyTest = construct_code(0xFFC, COM_SUBSYSTEM_TOF_MSK), // DEBUG, new
 
   // TOF Bias
   TOF_Bias_ON = construct_code(0x0, COM_SUBSYSTEM_TOF_BIAS_MSK),

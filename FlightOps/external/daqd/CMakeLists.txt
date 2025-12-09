@@ -18,7 +18,7 @@ add_library(GramsTofDaqdLib SHARED ${SOURCES})
 target_include_directories(GramsTofDaqdLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../kernel/include> 
-    $<INSTALL_INTERFACE:include/FlightOps>
+    $<INSTALL_INTERFACE:include/daqd>
 )
 target_link_libraries(GramsTofDaqdLib PUBLIC GramsTofRawDataLib)
 target_link_libraries(GramsTofDaqdLib PUBLIC Python3::Python Boost::python3 ${Boost_LIBRARIES})
@@ -37,4 +37,6 @@ install(TARGETS GramsTofDaqdLib
 install(TARGETS daqd
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/daqd)
 

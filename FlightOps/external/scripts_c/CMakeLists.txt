@@ -10,7 +10,7 @@ find_package(Boost REQUIRED COMPONENTS random)
 add_library(GramsTofScriptsCLib SHARED ${SOURCES})
 target_include_directories(GramsTofScriptsCLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/FlightOps>
+    $<INSTALL_INTERFACE:include/scripts_c>
 )
 target_link_libraries(GramsTofScriptsCLib PUBLIC ${ROOT_LIBRARIES})
 target_link_libraries(GramsTofScriptsCLib PUBLIC Boost::random)
@@ -37,6 +37,8 @@ install(TARGETS GramsTofScriptsCLib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
 )
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/scripts_c)
 
 install(TARGETS process_threshold_calibration
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin

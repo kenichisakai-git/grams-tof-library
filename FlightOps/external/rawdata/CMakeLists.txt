@@ -23,7 +23,7 @@ set_target_properties(shm_raw_py PROPERTIES
 )
 target_include_directories(shm_raw_py PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/FlightOps>
+    $<INSTALL_INTERFACE:include/rawdata>
 )
 if(UNIX AND NOT APPLE)
     target_link_libraries(shm_raw_py PUBLIC rt)
@@ -34,7 +34,7 @@ target_link_libraries(shm_raw_py PUBLIC GramsTofBaseLib Python3::Python Boost::p
 add_library(GramsTofRawDataLib SHARED ${SOURCES})
 target_include_directories(GramsTofRawDataLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/FlightOps>
+    $<INSTALL_INTERFACE:include/rawdata>
 )
 if(UNIX AND NOT APPLE)
     target_link_libraries(GramsTofRawDataLib PUBLIC rt)
@@ -60,4 +60,6 @@ install(TARGETS GramsTofRawDataLib
 install(TARGETS write_raw
     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/rawdata)
 
