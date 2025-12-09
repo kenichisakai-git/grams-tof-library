@@ -15,7 +15,6 @@ endif()
 include_directories(${INIPARSER_INCLUDE_DIR})
 
 # --- Python & Boost ---
-find_package(PythonLibs 3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python3 regex)
 
 # --- Platform-specific flags ---
@@ -24,9 +23,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # --- Include and link directories ---
-include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
-link_libraries(${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 find_path(INIPARSER_INCLUDE_DIR NAMES iniparser.h PATHS /usr/include/iniparser)
 find_library(INIPARSER_LIBRARY NAMES iniparser)
@@ -45,6 +42,8 @@ target_include_directories(GramsTofBaseLib PUBLIC
 )
 #target_link_libraries(GramsTofBaseLib PUBLIC iniparser)
 target_link_libraries(GramsTofBaseLib PUBLIC ${INIPARSER_LIBRARY})
+target_link_libraries(GramsTofBaseLib PUBLIC Python3::Python)
+target_link_libraries(GramsTofBaseLib PUBLIC Boost::python3)
 
 install(TARGETS GramsTofBaseLib
     EXPORT GramsTofLibraryTargets
