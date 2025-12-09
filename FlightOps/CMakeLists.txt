@@ -91,6 +91,7 @@ else()
     install(DIRECTORY external/scripts/ DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
     install(DIRECTORY external/config/  DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
     install(DIRECTORY sh/               DESTINATION ${CMAKE_INSTALL_PREFIX}/sh)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/FlightOps)
 
     # ----------------- External Libraries -----------------
     add_subdirectory(external/base)

@@ -38,7 +38,7 @@ add_library(GramsTofBaseLib SHARED ${SOURCES})
 target_include_directories(GramsTofBaseLib PUBLIC
     ${INIPARSER_INCLUDE_DIR}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/FlightOps>
+    $<INSTALL_INTERFACE:include/base>
 )
 #target_link_libraries(GramsTofBaseLib PUBLIC iniparser)
 target_link_libraries(GramsTofBaseLib PUBLIC ${INIPARSER_LIBRARY})
@@ -51,4 +51,6 @@ install(TARGETS GramsTofBaseLib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
 )
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/base)
 
