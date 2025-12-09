@@ -38,6 +38,13 @@ else()
         rt
     )
 
+    if(DEFINED ENV{NCURSES_ROOT})
+        message(STATUS "Using ncurses from $ENV{NCURSES_ROOT}")
+        include_directories($ENV{NCURSES_ROOT}/include)
+        include_directories($ENV{NCURSES_ROOT}/include/ncursesw)
+        link_directories($ENV{NCURSES_ROOT}/lib)
+    endif()
+
     # ----------------- Executables -----------------
     add_executable(grams_tof_server_daq tools/grams_tof_server_daq.cpp)
     target_link_libraries(grams_tof_server_daq PRIVATE GramsTofFlightOpsLib cli11)
@@ -49,7 +56,8 @@ else()
     target_link_libraries(grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11)
 
     add_executable(test_grams_tof_client_daq tools/test_grams_tof_client_daq.cpp)
-    target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 curses)
+    target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 ncursesw)
+    #target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 ncursesw tinfow)
  
     add_executable(test_grams_tof_config tools/test_grams_tof_config.cpp)
     target_link_libraries(test_grams_tof_config PRIVATE GramsTofFlightOpsLib)

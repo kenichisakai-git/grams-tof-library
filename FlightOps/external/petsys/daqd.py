@@ -1108,7 +1108,6 @@ class Connection:
 			calMode and 'T' or 'N', 
 			str(triggerID) ]
 
-		#self.__writerPipe = subprocess.Popen(cmd, bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
 		self.__writerPipe = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True)
 
 		if monitor_exec is not None:

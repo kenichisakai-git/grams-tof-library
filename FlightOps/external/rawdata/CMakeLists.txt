@@ -5,7 +5,6 @@ file(GLOB SOURCES "src/*.cpp")
 file(GLOB HEADERS "include/*.h")
 
 # --- Python & Boost ---
-find_package(PythonLibs 3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python3 regex)
 
 # --- Platform-specific flags ---
@@ -14,7 +13,6 @@ if(UNIX AND NOT APPLE)
 endif()
 
 # --- Include directories ---
-include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 
 # --- Build a Python module (no lib prefix) ---
@@ -30,7 +28,7 @@ target_include_directories(shm_raw_py PUBLIC
 if(UNIX AND NOT APPLE)
     target_link_libraries(shm_raw_py PUBLIC rt)
 endif()
-target_link_libraries(shm_raw_py PUBLIC GramsTofBaseLib ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(shm_raw_py PUBLIC GramsTofBaseLib Python3::Python Boost::python3 ${Boost_LIBRARIES})
 
 # --- C++ shared library ---
 add_library(GramsTofRawDataLib SHARED ${SOURCES})
@@ -41,7 +39,7 @@ target_include_directories(GramsTofRawDataLib PUBLIC
 if(UNIX AND NOT APPLE)
     target_link_libraries(GramsTofRawDataLib PUBLIC rt)
 endif()
-target_link_libraries(GramsTofRawDataLib PUBLIC GramsTofBaseLib ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(GramsTofRawDataLib PUBLIC GramsTofBaseLib Python3::Python Boost::python3 ${Boost_LIBRARIES})
 
 # --- Executable ---
 add_executable(write_raw tools/write_raw.cpp)

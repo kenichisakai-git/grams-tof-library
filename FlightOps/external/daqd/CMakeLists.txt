@@ -4,16 +4,13 @@ message("${BMagenta}[============ Entering TOF Daqd Subdirectory ============]${
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB HEADERS "include/*.h")
 
-find_package(PythonLibs 3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python3 regex)
 
 if(UNIX AND NOT APPLE)
   add_definitions(-DLINUX)
 endif()
 
-include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
-link_libraries(${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 ########################################################################################################################
 # Make a lib for all the stuff
@@ -24,6 +21,7 @@ target_include_directories(GramsTofDaqdLib PUBLIC
     $<INSTALL_INTERFACE:include/FlightOps>
 )
 target_link_libraries(GramsTofDaqdLib PUBLIC GramsTofRawDataLib)
+target_link_libraries(GramsTofDaqdLib PUBLIC Python3::Python Boost::python3 ${Boost_LIBRARIES})
 
 add_executable(daqd tools/daqd.cpp)
 target_link_libraries(daqd PRIVATE GramsTofDaqdLib)
