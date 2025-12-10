@@ -4,17 +4,52 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <filesystem>
+#include <iostream>
+
+namespace {
+    // Define the relative path to the config file from $GLIB
+    const std::filesystem::path RELATIVE_CONFIG_PATH = std::filesystem::path("config") / "config.ini";
+}
 
 GRAMS_TOF_Config& GRAMS_TOF_Config::instance() {
     static GRAMS_TOF_Config instance;
     return instance;
 }
 
+bool GRAMS_TOF_Config::loadDefaultConfig() {
+    GRAMS_TOF_Config& config = instance();
+    if (config.loaded_) return true; // Already loaded, skip.
+
+    const char* glibPath = std::getenv("GLIB");
+    if (!glibPath) {
+        std::cerr << "Warning: GLIB environment variable not set. Default config not loaded." << std::endl;
+        return false;
+    }
+
+    std::filesystem::path defaultPath = std::filesystem::path(glibPath) / RELATIVE_CONFIG_PATH;
+    std::string defaultPathStr = defaultPath.string();
+
+    if (config.load(defaultPathStr)) {
+        config.configFilePath_ = defaultPathStr;
+        config.loaded_ = true;
+        std::cout << "Info: Default config loaded from GLIB: " << defaultPathStr << std::endl;
+        return true;
+    } else {
+        std::cerr << "Warning: Failed to load default config from " << defaultPathStr << std::endl;
+        return false;
+    }
+}
+
 void GRAMS_TOF_Config::setConfigFile(const std::string& filename) {
+    if (loaded_) {
+        data_.clear();
+    }
     if (!load(filename)) {
+        // The empty string path was failing here!
         throw std::runtime_error("Failed to load config file: " + filename);
     }
-    configFilePath_ = filename; 
+    configFilePath_ = filename;
+    loaded_ = true;
 }
 
 bool GRAMS_TOF_Config::load(const std::string& filename) {

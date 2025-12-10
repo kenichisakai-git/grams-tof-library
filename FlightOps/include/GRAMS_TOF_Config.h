@@ -7,6 +7,7 @@ class GRAMS_TOF_Config {
 public:
     static GRAMS_TOF_Config& instance();
 
+    static bool loadDefaultConfig();
     void setConfigFile(const std::string& filename);
 
     std::string getString(const std::string& section, const std::string& key) const;
@@ -28,6 +29,7 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> data_;
     std::string configDir_;
     std::string configFilePath_;
+    bool loaded_ = false;
 
     std::string substituteVariables(const std::string& value) const;
 };
