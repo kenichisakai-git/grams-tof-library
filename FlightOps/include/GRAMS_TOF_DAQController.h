@@ -23,7 +23,9 @@ public:
         int eventTargetPort = 50006;
         std::string remoteEventHub = "127.0.0.1";
         std::string remoteCommandHub = "127.0.0.1";
-        std::string configFile = "config/config.ini";
+        //std::string configFile = "config/config.ini";
+        //std::string configFile = "/home/ksakai/work/source/grams-tof-library/00build/00install/config/config.ini"; 
+        std::string configFile = ""; 
         std::string logFile = "log/daq_log.txt";
     };
 

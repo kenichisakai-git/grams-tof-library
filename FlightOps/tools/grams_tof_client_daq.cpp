@@ -22,8 +22,13 @@ int main(int argc, char* argv[]) {
         return app.exit(e);
     }
 
-    std::unique_ptr<GRAMS_TOF_DAQController> daqController;
+    if (config.configFile.empty()) {
+        if (!GRAMS_TOF_Config::loadDefaultConfig()) {
+            throw std::runtime_error("Configuration file not specified and default GLIB path failed to load.");
+        } else config.configFile =  GRAMS_TOF_Config::instance().getConfigFilePath();
+    }
 
+    std::unique_ptr<GRAMS_TOF_DAQController> daqController;
     try {
         daqController = std::make_unique<GRAMS_TOF_DAQController>(config);
         if (!daqController->initialize()) return 1;

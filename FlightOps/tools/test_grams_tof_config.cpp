@@ -3,7 +3,7 @@
 
 int main() {
     try {
-        GRAMS_TOF_Config::instance().setConfigFile("config/config.ini");
+        //GRAMS_TOF_Config::instance().setConfigFile("config/config.ini");
     } catch (const std::exception& e) {
         std::cerr << "Config load error: " << e.what() << "\n";
         return 1;
