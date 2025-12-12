@@ -76,16 +76,15 @@ def add_calibration_from_rom(connection, portID, slaveID, slotID, outputFile):
 		
 	return None
 
-
 def normalizeAndSplit(l):
-	l = re.sub("\s*#.*", "", l)	# Remove comments
-	l = re.sub('^\s*', '', l)	# Remove leading white space
-	l = re.sub('\s*$', '', l)	# Remove trailing whitespace
-	l = re.sub('\s+', '\t', l)	# Normalize whitespace to tabs
-	l = re.sub('\r', '', l)		# Remove \r
-	l = re.sub('\n', '', l)		# Remove \l
-	l = l.split('\t')
-	return l
+        l = re.sub(r"\s*#.*", "", l)   # Remove comments
+        l = re.sub(r'^\s*', '', l)     # Remove leading white space
+        l = re.sub(r'\s*$', '', l)     # Remove trailing whitespace
+        l = re.sub(r'\s+', '\t', l)    # Normalize whitespace to tabs
+        l = re.sub(r'\r', '', l)       # Remove \r
+        l = re.sub(r'\n', '', l)       # Remove \n
+        l = l.split('\t')
+        return l
 
 def add_calibration_table_from_file(inputFileName, portID, slaveID, slotID, outputFile):
 	f = open(inputFileName)
