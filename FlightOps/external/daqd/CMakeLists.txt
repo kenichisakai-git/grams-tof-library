@@ -17,7 +17,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_library(GramsTofDaqdLib SHARED ${SOURCES})
 target_include_directories(GramsTofDaqdLib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../kernel/include> 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../kernel> 
     $<INSTALL_INTERFACE:include/daqd>
 )
 target_link_libraries(GramsTofDaqdLib PUBLIC GramsTofRawDataLib)
