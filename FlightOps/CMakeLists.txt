@@ -56,8 +56,8 @@ else()
     target_link_libraries(grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11)
 
     add_executable(test_grams_tof_client_daq tools/test_grams_tof_client_daq.cpp)
-    target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 ncursesw)
-    #target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 ncursesw tinfow)
+    #target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 ncursesw)
+    target_link_libraries(test_grams_tof_client_daq PRIVATE GramsTofFlightOpsLib cli11 ncursesw tinfow)
  
     add_executable(test_grams_tof_config tools/test_grams_tof_config.cpp)
     target_link_libraries(test_grams_tof_config PRIVATE GramsTofFlightOpsLib)
@@ -95,7 +95,6 @@ else()
 
     # ----------------- External Libraries -----------------
     add_subdirectory(external/base)
-    add_subdirectory(external/kernel)
     add_subdirectory(external/rawdata)
     add_subdirectory(external/daqd)
     add_subdirectory(external/pybind11)
@@ -103,6 +102,10 @@ else()
     add_subdirectory(external/scripts_c)
     add_subdirectory(external/CLI11-2.2.0)
     add_subdirectory(external/shota)
+
+    if(INSTALL_KERNEL_MODULE)
+        add_subdirectory(external/kernel)
+    endif()
 
     # ----------------- fmt Library -----------------
     set(FMT_INSTALL ON CACHE BOOL "" FORCE)
