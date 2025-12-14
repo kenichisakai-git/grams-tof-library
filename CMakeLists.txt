@@ -15,6 +15,7 @@ add_compile_options (-fdiagnostics-color=always)
 
 # Developer-only compiler flags
 option(ENABLE_DEV_FLAGS "Enable developer-only compiler flags (warnings, sanitizers, debug info)" OFF)
+option(INSTALL_KERNEL_MODULE "Install psdaq kernel module via DKMS" OFF)
 
 # Configure
 if(ENABLE_DEV_FLAGS)
