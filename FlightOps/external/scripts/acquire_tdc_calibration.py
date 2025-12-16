@@ -61,7 +61,10 @@ def acquire_tdc_calibration(config_path, file_name_prefix):
             t_finish = time.time()
             print(f"Channel(s): {activeChannels_string} Phase: {finePhase:.3f} clk in {t_finish - t_start:.2f} seconds")
 
-    systemConfig.loadToHardware(daqd_conn, bias_enable=config.APPLY_BIAS_OFF)
+    try:
+        systemConfig.loadToHardware(daqd_conn, bias_enable=config.APPLY_BIAS_OFF)
+    finally:
+        daqd_conn.closeAcquisition()
     print("[acquire_tdc_calibration] Done.")
     return True
 

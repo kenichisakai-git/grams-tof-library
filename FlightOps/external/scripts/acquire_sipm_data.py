@@ -122,7 +122,10 @@ def acquire_sipm_data(config_path, file_name_prefix, acquisition_time, mode, hw_
                 daqd_conn.setAsicsConfig(asicsConfig)
                 daqd_conn.acquire(acquisition_time, float(step1), float(step2))
 
-    systemConfig.loadToHardware(daqd_conn, bias_enable=config.APPLY_BIAS_OFF)
+    try:
+        systemConfig.loadToHardware(daqd_conn, bias_enable=config.APPLY_BIAS_OFF)
+    finally:
+        daqd_conn.closeAcquisition()
     print("[acquire_sipm_data] Done.")
     return True
 

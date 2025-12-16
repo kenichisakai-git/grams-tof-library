@@ -232,8 +232,13 @@ def acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, d
                     stdout.flush()
             stdout.write("\n")
     outFile.close()
-    
-    systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_OFF)
+
+    try:
+        systemConfig.loadToHardware(conn, bias_enable=config.APPLY_BIAS_OFF)
+    finally:
+        conn.closeAcquisition()
+    print("[acquire_threshold_calibration] Done.")
+    return True
 
 def safe_acquire_threshold_calibration(config_file, out_file_prefix, noise_reads=4, dark_reads=4, ext_bias=False):
     try:
