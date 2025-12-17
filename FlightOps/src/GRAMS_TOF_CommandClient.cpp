@@ -210,12 +210,12 @@ void GRAMS_TOF_CommandClient::run() {
                     // --- B. Extract, Parse, and Process the guaranteed full packet ---
                     
                     std::vector<uint8_t> packet_data(incoming_buffer.begin(), incoming_buffer.begin() + expectedSize);
-                    
+
+                    // 1. Remove the successfully processed packet from the buffer
+                    incoming_buffer.erase(incoming_buffer.begin(), incoming_buffer.begin() + expectedSize);                   
+ 
                     GRAMS_TOF_CommandCodec::Packet pkt;
                     if (GRAMS_TOF_CommandCodec::parse(packet_data, pkt)) {
-
-                        // 1. Execute the handler
-                        handler_(pkt);
 
                         // 2. Send ACK back to the Hub
                         GRAMS_TOF_CommandCodec::Packet ackPkt;
@@ -228,10 +228,16 @@ void GRAMS_TOF_CommandClient::run() {
                             Logger::instance().error("[CommandClient] Failed to send ACK, closing FD={}", fd_in_event);
                             shouldClose = true;
                             break; 
+                        } else {
+                            Logger::instance().debug("[CommandClient] ACK sent for Command Code: 0x{:04X}, Bytes: {}", 
+                                                     pkt.code, serializedAck.size());                       
                         }
-                        
+
+                        // 3. Execute the handler
+                        handler_(pkt);
+ 
                         // 3. Remove the successfully processed packet from the buffer
-                        incoming_buffer.erase(incoming_buffer.begin(), incoming_buffer.begin() + expectedSize);
+                        //incoming_buffer.erase(incoming_buffer.begin(), incoming_buffer.begin() + expectedSize);
 
                     } else {
                         Logger::instance().error("[CommandClient] Failed to parse complete packet. Corrupt stream.", fd_in_event);
