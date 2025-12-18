@@ -92,19 +92,15 @@ bool GRAMS_TOF_DAQManager::initialize() {
 
 bool GRAMS_TOF_DAQManager::run() {
     if (!frameServer_) return false;
+  
+    globalUserStop.store(false, std::memory_order_relaxed);
+
     pollSocket();
     return true;
 }
 
 void GRAMS_TOF_DAQManager::stop() {
     globalUserStop.store(true, std::memory_order_relaxed);
-}
-
-void GRAMS_TOF_DAQManager::reset() {
-    stop();
-    cleanup();
-    initialize();
-    run();
 }
 
 int GRAMS_TOF_DAQManager::createListeningSocket() {
@@ -231,8 +227,8 @@ void GRAMS_TOF_DAQManager::pollSocket() {
     clientList.clear();
 
     ::close(epoll_fd);
-    GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::DAQ);
-    unlink(socketPath_.c_str());
+    //GRAMS_TOF_FDManager::instance().removeServerFD(ServerKind::DAQ);
+    //unlink(socketPath_.c_str());
 }
 
 

@@ -13,19 +13,21 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     table_[TOFCommandCode::START_DAQ] = [&](const std::vector<int>&) {
         try {
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Starting DAQ...");
-        
             std::lock_guard<std::mutex> lock(daqMutex_);
-        
-            if (daqRunning_) {
-                Logger::instance().warn("[GRAMS_TOF_CommandDispatch] DAQ is already running.");
-                return false;
-            }
+       
+            if (daqRunning_) return false;
         
             // Join previous thread if needed
             if (daqThread_.joinable()) {
                 daqThread_.join();
             }
-        
+       
+            // Re-initialization
+            if (!pyint_.getDAQ().initialize()) {
+                Logger::instance().error("Failed to re-initialize DAQ Manager");
+                return false;
+            }
+ 
             daqRunning_ = true;
             daqThread_ = std::thread(&GRAMS_TOF_CommandDispatch::runDAQThread, this);
             return true;
@@ -68,7 +70,29 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     table_[TOFCommandCode::RESET_DAQ] = [&](const std::vector<int>&) {
         try {
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Resetting DAQ...");
-            pyint_.getDAQ().reset();
+    
+            {
+                std::lock_guard<std::mutex> lock(daqMutex_);
+                daqRunning_ = false;
+            }
+            pyint_.getDAQ().stop(); // Signals the loop to end
+    
+            if (daqThread_.joinable()) {
+                daqThread_.join();
+            }
+    
+            pyint_.getDAQ().cleanup();
+            if (!pyint_.getDAQ().initialize()) {
+                Logger::instance().error("Failed to re-initialize DAQ during reset");
+                return false;
+            }
+    
+            {
+                std::lock_guard<std::mutex> lock(daqMutex_);
+                daqRunning_ = true;
+                daqThread_ = std::thread(&GRAMS_TOF_CommandDispatch::runDAQThread, this);
+            }
+    
             return true;
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RESET_DAQ");
@@ -389,13 +413,18 @@ GRAMS_TOF_CommandDispatch::~GRAMS_TOF_CommandDispatch() {
 void GRAMS_TOF_CommandDispatch::runDAQThread() {
     try {
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] DAQ thread started");
-        pyint_.getDAQ().run();
+        pyint_.getDAQ().run(); 
         Logger::instance().warn("[GRAMS_TOF_CommandDispatch] DAQ thread finished");
+    } catch (const std::exception& e) {
+        Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in DAQ thread: {}", e.what());
     } catch (...) {
-        Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in DAQ thread");
+        Logger::instance().error("[GRAMS_TOF_CommandDispatch] Unknown exception in DAQ thread");
     }
-    std::lock_guard<std::mutex> lock(daqMutex_);
-    daqRunning_ = false;
+    
+    {
+        std::lock_guard<std::mutex> lock(daqMutex_);
+        daqRunning_ = false;
+    }
 }
 
 bool GRAMS_TOF_CommandDispatch::dispatch(TOFCommandCode code, const std::vector<int>& argv) {
