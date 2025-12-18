@@ -23,12 +23,11 @@ public:
     bool initialize();
     bool run();
     void stop();
-    void reset();
+    void cleanup();
 
 private:
     int createListeningSocket();
     void pollSocket();
-    void cleanup();
 
 private:
     std::string socketPath_;

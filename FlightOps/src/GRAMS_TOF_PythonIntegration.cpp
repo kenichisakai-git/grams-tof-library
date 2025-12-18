@@ -87,17 +87,12 @@ public:
     {
         namespace py = pybind11;
         try {
-            // Look for the function in our session's locals first
-            py::object func;
-            if (locals_.contains(functionName)) {
-                func = locals_[functionName.c_str()];
-            } else {
-                // Fallback to importing as a module if not in locals
-                auto module = py::module_::import(scriptPath.c_str());
-                func = module.attr(functionName.c_str());
-            }
-    
-            if (!func(std::forward<Args>(args)...).template cast<bool>()) {
+            auto module = py::module_::import(scriptPath.c_str());
+
+            py::object func = module.attr(functionName.c_str());
+            py::object result = func(std::forward<Args>(args)...);
+
+            if (!result.template cast<bool>()) {
                 return false;
             }
             return true;
