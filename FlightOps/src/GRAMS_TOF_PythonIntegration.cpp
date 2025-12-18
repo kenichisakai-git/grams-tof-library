@@ -24,18 +24,31 @@ namespace {
 
 class PythonIntegrationImpl {
 public:
-    explicit PythonIntegrationImpl(GRAMS_TOF_DAQManager& daq) : daq_(daq), guard_()
+    explicit PythonIntegrationImpl(GRAMS_TOF_DAQManager& daq) : daq_(daq)
     {
         namespace py = pybind11;
         try {
-            auto globals = py::globals();
+            // STEP 1: Static initialization - Only happens once for the entire flight
+            static py::scoped_interpreter* global_guard = new py::scoped_interpreter();
+            
+            // STEP 2: Create a fresh "Clean Room" for this specific DAQ run
+            locals_ = py::dict();
+            
+            // Inject the DAQ manager into our local scope
             py::module_::import("grams_tof");
-            globals["daq"] = py::cast(&daq_, py::return_value_policy::reference);
-            Logger::instance().info("[PythonIntegration] Python interpreter initialized and DAQ manager injected.");
+            locals_["daq"] = py::cast(&daq_, py::return_value_policy::reference);
+            
+            Logger::instance().info("[PythonIntegration] Python workspace initialized for this session.");
         } catch (const std::exception& e) {
-            Logger::instance().error("[PythonIntegration] Exception during Python initialization: {}", e.what());
+            Logger::instance().error("[PythonIntegration] Exception during Python init: {}", e.what());
             throw;
         }
+    }
+
+    ~PythonIntegrationImpl() {
+        // Clear the workspace to prevent memory leaks, 
+        // but DO NOT kill the interpreter.
+        locals_.clear(); 
     }
 
     void loadPythonScript(const std::string& filename) {
@@ -49,19 +62,19 @@ public:
             std::stringstream buffer;
             buffer << infile.rdbuf();
 
-            py::exec(buffer.str(), py::globals());
+            // STEP 3: Execute in local scope, not the global one
+            py::exec(buffer.str(), py::globals(), locals_);
             Logger::instance().info("[PythonIntegration] Loaded Python script: {}", filename);
         } catch (const std::exception& e) {
-            Logger::instance().error("[PythonIntegration] Exception during script load:", e.what());
+            Logger::instance().error("[PythonIntegration] Exception during script load: {}", e.what());
         }
     }
 
     void execPythonFunction(const std::string& func_name) {
         namespace py = pybind11;
         try {
-            std::string cmd = func_name + "()";
-            Logger::instance().info("[PythonIntegration] Calling Python:: {}", cmd);
-            py::eval(cmd, py::globals());
+            // Evaluate using our specific locals_ where the script was loaded
+            py::eval(func_name + "()", py::globals(), locals_);
         } catch (const std::exception& e) {
             Logger::instance().error("[PythonIntegration] Exception running {} : {}", func_name, e.what());
         }
@@ -74,18 +87,22 @@ public:
     {
         namespace py = pybind11;
         try {
-            auto module = py::module_::import(scriptPath.c_str());
-            auto func = module.attr(functionName.c_str());
+            // Look for the function in our session's locals first
+            py::object func;
+            if (locals_.contains(functionName)) {
+                func = locals_[functionName.c_str()];
+            } else {
+                // Fallback to importing as a module if not in locals
+                auto module = py::module_::import(scriptPath.c_str());
+                func = module.attr(functionName.c_str());
+            }
     
-            Logger::instance().info("[PythonIntegration] Calling {}()", functionName);
             if (!func(std::forward<Args>(args)...).template cast<bool>()) {
-                Logger::instance().error("[PythonIntegration] {}() returned false.", functionName);
                 return false;
             }
             return true;
         } catch (const py::error_already_set& e) {
-            Logger::instance().error("[PythonIntegration] Exception in {}(): {}", functionName, e.what());
-            PyErr_Clear();
+            Logger::instance().error("[PythonIntegration] Python Error: {}", e.what());
             return false;
         }
     }
@@ -184,7 +201,7 @@ public:
 
 private:
     GRAMS_TOF_DAQManager& daq_;
-    pybind11::scoped_interpreter guard_;
+    pybind11::dict locals_; // The per-session "Clean Room"
 };
 
 } // namespace
