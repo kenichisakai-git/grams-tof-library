@@ -29,7 +29,8 @@ public:
         namespace py = pybind11;
         try {
             // STEP 1: Static initialization - Only happens once for the entire flight
-            static py::scoped_interpreter* global_guard = new py::scoped_interpreter();
+            //static py::scoped_interpreter* global_guard = new py::scoped_interpreter();
+            static py::scoped_interpreter guard{};
             
             // STEP 2: Create a fresh "Clean Room" for this specific DAQ run
             locals_ = py::dict();
