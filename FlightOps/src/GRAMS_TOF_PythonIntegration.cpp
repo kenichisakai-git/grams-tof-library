@@ -24,22 +24,18 @@ namespace {
 
 class PythonIntegrationImpl {
 public:
-    explicit PythonIntegrationImpl(GRAMS_TOF_DAQManager& daq) : daq_(daq)
+    explicit PythonIntegrationImpl(GRAMS_TOF_DAQManager& daq)
+        : guard_(),    // Python starts HERE
+          locals_(),   // Dictionary created HERE (safely)
+          daq_(daq)    // Reference stored
     {
         namespace py = pybind11;
         try {
-            // STEP 1: Static initialization - Only happens once for the entire flight
-            //static py::scoped_interpreter* global_guard = new py::scoped_interpreter();
-            static py::scoped_interpreter guard{};
-            
-            // STEP 2: Create a fresh "Clean Room" for this specific DAQ run
-            locals_ = py::dict();
-            
-            // Inject the DAQ manager into our local scope
+            // Inject the DAQ manager
             py::module_::import("grams_tof");
             locals_["daq"] = py::cast(&daq_, py::return_value_policy::reference);
-            
-            Logger::instance().info("[PythonIntegration] Python workspace initialized for this session.");
+
+            Logger::instance().info("[PythonIntegration] Python workspace initialized.");
         } catch (const std::exception& e) {
             Logger::instance().error("[PythonIntegration] Exception during Python init: {}", e.what());
             throw;
@@ -196,6 +192,7 @@ public:
     }
 
 private:
+    pybind11::scoped_interpreter guard_;
     GRAMS_TOF_DAQManager& daq_;
     pybind11::dict locals_; // The per-session "Clean Room"
 };
