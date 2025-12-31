@@ -243,5 +243,5 @@ bool runConvertRawToRaw(const std::string& configFileName,
 	delete dataFileWriter;
 	delete reader;
 
-	return 0;
+	return true;
 }

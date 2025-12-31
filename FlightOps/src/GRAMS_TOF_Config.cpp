@@ -1,10 +1,14 @@
 #include "GRAMS_TOF_Config.h"
+#include "GRAMS_TOF_Logger.h"
 #include "INIReader.h"
 
 #include <cstdlib>
 #include <stdexcept>
 #include <filesystem>
 #include <iostream>
+#include <regex>
+#include <vector>
+#include <algorithm>
 
 namespace {
     // Define the relative path to the config file from $GLIB
@@ -22,8 +26,16 @@ bool GRAMS_TOF_Config::loadDefaultConfig() {
 
     const char* glibPath = std::getenv("GLIB");
     if (!glibPath) {
-        std::cerr << "Warning: GLIB environment variable not set. Default config not loaded." << std::endl;
+        std::cerr << "Error: GLIB environment variable not set. Default config not loaded." << std::endl;
         return false;
+    }
+
+    const char* tofdata = std::getenv("TOFDATA");
+    if (!tofdata) {
+        std::cerr << "Error: TOFDATA environment variable is not set. Cannot continue." << std::endl;
+        return false;
+    } else {
+        config.tofdataDir_ = tofdata;
     }
 
     std::filesystem::path defaultPath = std::filesystem::path(glibPath) / RELATIVE_CONFIG_PATH;
@@ -73,18 +85,18 @@ bool GRAMS_TOF_Config::load(const std::string& filename) {
 
 std::string GRAMS_TOF_Config::substituteVariables(const std::string& value) const {
     std::string result = value;
-
     size_t pos;
-    if ((pos = result.find("%CDIR%")) != std::string::npos) {
-        result.replace(pos, 6, configDir_);
-    }
-    if ((pos = result.find("%PWD%")) != std::string::npos) {
-        result.replace(pos, 5, ".");
-    }
+
+    if ((pos = result.find("%CDIR%")) != std::string::npos) result.replace(pos, 6, configDir_);
+    if ((pos = result.find("%PWD%")) != std::string::npos) result.replace(pos, 5, ".");
     if ((pos = result.find("%HOME%")) != std::string::npos) {
         const char* home = std::getenv("HOME");
-        if (home)
-            result.replace(pos, 6, home);
+        if (home) result.replace(pos, 6, home);
+    }
+    if ((pos = result.find("$TOFDATA")) != std::string::npos) {
+        const char* tofdata = std::getenv("TOFDATA");
+        if (tofdata) result.replace(pos, 8, tofdata);
+        else throw std::runtime_error("TOFDATA environment variable not set.");
     }
 
     return result;
@@ -98,6 +110,12 @@ std::string GRAMS_TOF_Config::getString(const std::string& section, const std::s
     return keyIt->second;
 }
 
+std::string GRAMS_TOF_Config::getAbsolutePath(const std::string& section, const std::string& key) const {
+    std::string pathStr = getString(section, key);
+    std::filesystem::path p(pathStr);
+    return std::filesystem::absolute(p).string();
+}
+
 std::string GRAMS_TOF_Config::getFileStem(const std::string& section, const std::string& key) const {
     std::string pathStr = getString(section, key); 
     return std::filesystem::path(pathStr).stem().string();
@@ -109,8 +127,116 @@ std::string GRAMS_TOF_Config::getFileStemWithDir(const std::string& section, con
     return (p.parent_path() / p.stem()).string(); 
 }
 
-std::string GRAMS_TOF_Config::getSubDir(const std::string& subDirName) const {
-    return (std::filesystem::path(configDir_) / subDirName).string();
+std::string GRAMS_TOF_Config::getFileByTimestamp(
+    const std::string& absDir,
+    const std::string& prefix,
+    const std::string& timestamp) const
+{
+    namespace fs = std::filesystem;
+
+    fs::path dir(absDir);
+    if (!fs::exists(dir) || !fs::is_directory(dir))
+        throw std::runtime_error("Directory does not exist: " + dir.string());
+
+    std::regex re(prefix + "_" + timestamp + R"(.*)");
+
+    for (const auto& entry : fs::directory_iterator(dir)) {
+        if (!entry.is_regular_file()) continue;
+
+        const std::string filename = entry.path().filename().string();
+        if (std::regex_match(filename, re))
+            return entry.path().string();
+    }
+
+    throw std::runtime_error(
+        "No file found for timestamp " + timestamp + " in " + dir.string()
+    );
+}
+
+std::string GRAMS_TOF_Config::makeFilePathWithTimestamp(
+    const std::string& absDir,
+    const std::string& prefix,
+    const std::string& timestamp,
+    const std::string& ext ) const
+{
+    namespace fs = std::filesystem;
+    fs::path dir(absDir);
+    if (!fs::exists(dir)) fs::create_directories(dir);
+
+    std::string dotExt = ext.empty() ? "" : (ext.front() == '.' ? ext : "." + ext);
+
+    return (dir / (prefix + "_" + timestamp + dotExt)).string();
+}
+
+std::string GRAMS_TOF_Config::getLatestTimestamp(
+    const std::string& absDir,
+    const std::string& prefix) const
+{
+    namespace fs = std::filesystem;
+
+    fs::path dir(absDir);
+    if (!fs::exists(dir) || !fs::is_directory(dir))
+        throw std::runtime_error("Directory does not exist: " + dir.string());
+
+    std::regex re(prefix + R"(_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d+Z).*)");
+
+    std::string latestTs;
+
+    for (const auto& entry : fs::directory_iterator(dir)) {
+        if (!entry.is_regular_file()) continue;
+
+        std::smatch match;
+        std::string filename = entry.path().filename().string();
+        if (!std::regex_match(filename, match, re)) continue;
+
+        const std::string& ts = match[1];
+        if (latestTs.empty() || ts > latestTs)
+            latestTs = ts;
+    }
+
+    if (latestTs.empty())
+        throw std::runtime_error("No matching file found in " + dir.string());
+
+    return latestTs;
+}
+
+std::string GRAMS_TOF_Config::getCurrentTimestamp() const
+{
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    auto secs = time_point_cast<std::chrono::seconds>(now);
+    auto frac = duration_cast<milliseconds>(now - secs).count();
+
+    std::time_t t = system_clock::to_time_t(secs);
+    std::tm tm = *std::gmtime(&t);
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S")
+        << "." << frac << "Z";
+    return oss.str();
+}
+
+void GRAMS_TOF_Config::copyOrLink(const std::string& srcPath, const std::string& dstPath, bool symlink) const
+{
+    namespace fs = std::filesystem;
+    fs::path src(srcPath);
+    fs::path dst(dstPath);
+
+    Logger::instance().info(
+        "[GRAMS_TOF_Config] copyOrLink: src='{}', dst='{}', mode={}",
+        src.string(),
+        dst.string(),
+        symlink ? "symlink" : "copy"
+    );
+
+    if (!fs::exists(src)) throw std::runtime_error("Source file does not exist: " + src.string());
+    if (fs::exists(dst)) fs::remove(dst);  
+
+    if (symlink) {
+        fs::create_symlink(src, dst);
+    } else {
+        fs::copy_file(src, dst, fs::copy_options::overwrite_existing);
+    }
 }
 
 int GRAMS_TOF_Config::getInt(const std::string& section, const std::string& key) const {

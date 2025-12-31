@@ -152,7 +152,7 @@ static void deleteTemporaryFiles(const char *outputFilePrefix);
 		deleteTemporaryFiles(tmpFilePrefix.c_str());
 	}
 
-	return 0;
+	return true;
 }
 
 
@@ -706,8 +706,8 @@ static void calibrateAllAsics(SystemConfig *config, CalibrationEntry *calibratio
 			printf("Calibrating ASIC (%2lu %2lu %2lu)\n", portID, slaveID, chipID);
 			fflush(stdout);
 			calibrateAsic(config, gAsicID, tmpDataFile, calibrationTable, summaryFilePrefix, nBins, xMin, xMax);
-			//exit(0);
-      return;
+			_exit(0);
+      //return;
 		} else {
 			nWorkers += 1;
 		}
