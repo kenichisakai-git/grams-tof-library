@@ -122,7 +122,6 @@ bool runProcessTdcCalibration(const std::string& configFileName,
     throw std::runtime_error(oss.str());
   }
 
-
   CalibrationEntry *calibrationTable = (CalibrationEntry *)mmap(NULL, sizeof(CalibrationEntry)*MAX_N_TAC, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
   for(int gid = 0; gid < MAX_N_TAC; gid++) {
     calibrationTable[gid].valid = false;
@@ -136,14 +135,16 @@ bool runProcessTdcCalibration(const std::string& configFileName,
   if(doSorting) {
     sortData(inputFilePrefix.c_str(), tmpFilePrefix.c_str());
   }
-  calibrateAllAsics(nBins, xMin, xMax, calibrationTable, nominalM, outputFilePrefix.c_str(), tmpFilePrefix.c_str());
+  //calibrateAllAsics(nBins, xMin, xMax, calibrationTable, nominalM, outputFilePrefix.c_str(), tmpFilePrefix.c_str());
+  calibrateAllAsics(nBins, xMin, xMax, calibrationTable, nominalM, tmpFilePrefix.c_str(), tmpFilePrefix.c_str());
   adjustCalibrationTable(calibrationTable);
+
   writeCalibrationTable(calibrationTable, outputFilePrefix.c_str());
   if(!keepTemporary) {
     deleteTemporaryFiles(tmpFilePrefix.c_str());
   }
 
-  return 0;
+  return true;
 }
 
 
@@ -1008,8 +1009,8 @@ static void calibrateAllAsics(int linearityNbins, float linearityRangeMinimum, f
       calibrateAsic(gAsicID, tmpDataFile, linearityNbins, linearityRangeMinimum, linearityRangeMaximum,
                   calibrationTable, nominalM, summaryFilePrefix);
 #endif
-			//exit(0);
-      return;
+			_exit(0);
+      //return;
 		} else {
 			nWorkers += 1;
 		}

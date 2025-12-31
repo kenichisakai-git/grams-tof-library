@@ -154,7 +154,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing make_simple_channel_map.py script...");
             return pyint_.runPetsysMakeSimpleChannelMap(
                 "scripts.make_simple_channel_map",
-                config.getSubDir("map")
+                config.getConfigDir() + "/map"
             );
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_MAKE_SIMPLE_CHANNEL_MAP");
@@ -201,11 +201,12 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_ACQUIRE_THRESHOLD_CALIBRATION
     table_[TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getCurrentTimestamp();
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_threshold_calibration.py script...");
             return pyint_.runPetsysAcquireThresholdCalibration(
                 "scripts.acquire_threshold_calibration",
                 config.getConfigFilePath(),
-                config.getFileStem("main", "disc_calibration_table"),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "disc_calibration", timestampStr),
                 argv.size() > 0 ? argv[0] : 4,
                 argv.size() > 1 ? argv[1] : 4,
                 argv.size() > 2 ? static_cast<bool>(argv[2]) : false
@@ -219,11 +220,12 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_ACQUIRE_QDC_CALIBRATION
     table_[TOFCommandCode::RUN_ACQUIRE_QDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getCurrentTimestamp();
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_qdc_calibration.py script...");
             return pyint_.runPetsysAcquireQdcCalibration(
                 "scripts.acquire_qdc_calibration",
                 config.getConfigFilePath(),
-                config.getFileStem("main", "qdc_calibration_table")
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "qdc_calibration", timestampStr)
             );
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_ACQUIRE_QDC_CALIBRATION");
@@ -234,11 +236,12 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_ACQUIRE_TDC_CALIBRATION
     table_[TOFCommandCode::RUN_ACQUIRE_TDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getCurrentTimestamp();
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_tdc_calibration.py script...");
             return pyint_.runPetsysAcquireTdcCalibration(
                 "scripts.acquire_tdc_calibration",
                 config.getConfigFilePath(),
-                config.getFileStem("main", "tdc_calibration_table")
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "tdc_calibration", timestampStr)
             );
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_ACQUIRE_TDC_CALIBRATION");
@@ -249,11 +252,12 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_ACQUIRE_SIPM_DATA
     table_[TOFCommandCode::RUN_ACQUIRE_SIPM_DATA] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getCurrentTimestamp();
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing acquire_sipm_data.py script...");
             return pyint_.runPetsysAcquireSipmData(
                 "scripts.acquire_sipm_data",
                 config.getConfigFilePath(),
-                "run_test",
+                config.makeFilePathWithTimestamp(config.getSTG0Dir(), "run", timestampStr),
                 argv.size() > 0 ? static_cast<double>(argv[0]) : 60.0,
                 "qdc",
                 argv.size() > 1 ? static_cast<bool>(argv[1]) : false,
@@ -268,13 +272,17 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_PROCESS_THRESHOLD_CALIBRATION
     table_[TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getLatestTimestamp(config.getCalibrationDir(), "disc_calibration");
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running threshold calibration...");
-            return analyzer_.runPetsysProcessThresholdCalibration(
+            auto output = analyzer_.runPetsysProcessThresholdCalibration(
                 config.getConfigFilePath(),
-                config.getFileStem("main", "disc_calibration_table"),
-                config.getString("main", "disc_calibration_table"),
-                "disc_calibration.root"
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "disc_calibration", timestampStr),
+                config.makeFilePathWithTimestamp(config.getDiscDir(), "disc_calibration", timestampStr, "tsv"),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "disc_calibration", timestampStr, "root")
             );
+            config.copyOrLink(config.getFileByTimestamp(config.getDiscDir(), "disc_calibration", timestampStr),
+                              config.getAbsolutePath("main", "disc_calibration_table"), true);
+            return output;
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_PROCESS_THRESHOLD_CALIBRATION");
             return false;
@@ -284,19 +292,23 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_PROCESS_TDC_CALIBRATION
     table_[TOFCommandCode::RUN_PROCESS_TDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getLatestTimestamp(config.getCalibrationDir(), "tdc_calibration");
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running TDC calibration...");
             bool doSorting = argv.size() > 0 ? (argv[0] != 0) : true;
             bool keepTmp   = argv.size() > 1 ? (argv[1] != 0) : false;
             float nominalM = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;
-            return analyzer_.runPetsysProcessTdcCalibration(
+            auto output = analyzer_.runPetsysProcessTdcCalibration(
                 config.getConfigFilePath(),
-                config.getFileStem("main", "tdc_calibration_table"),
-                config.getFileStemWithDir("main", "tdc_calibration_table"),
-                config.getFileStemWithDir("main", "tdc_calibration_table"),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "tdc_calibration", timestampStr),
+                config.makeFilePathWithTimestamp(config.getTDCDir(), "tdc_calibration", timestampStr),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "tdc_calibration", timestampStr),
                 doSorting,
                 keepTmp,
                 nominalM
             );
+            config.copyOrLink(config.getFileByTimestamp(config.getTDCDir(), "tdc_calibration", timestampStr),
+                              config.getAbsolutePath("main", "tdc_calibration_table"), true);
+            return output;
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_PROCESS_TDC_CALIBRATION");
             return false;
@@ -306,19 +318,23 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_PROCESS_QDC_CALIBRATION
     table_[TOFCommandCode::RUN_PROCESS_QDC_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getLatestTimestamp(config.getCalibrationDir(), "qdc_calibration");
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running QDC calibration...");
             bool doSorting = argv.size() > 0 ? (argv[0] != 0) : true;
             bool keepTmp   = argv.size() > 1 ? (argv[1] != 0) : false;
             float nominalM = argv.size() > 2 ? static_cast<float>(argv[2]) : 200.0f;
-            return analyzer_.runPetsysProcessQdcCalibration(
+            auto output = analyzer_.runPetsysProcessQdcCalibration(
                 config.getConfigFilePath(),
-                config.getFileStem("main", "qdc_calibration_table"),
-                config.getFileStemWithDir("main", "qdc_calibration_table"),
-                config.getFileStemWithDir("main", "qdc_calibration_table"),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "qdc_calibration", timestampStr),
+                config.makeFilePathWithTimestamp(config.getQDCDir(), "qdc_calibration", timestampStr),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "qdc_calibration", timestampStr),
                 doSorting,
                 keepTmp,
                 nominalM
             );
+            config.copyOrLink(config.getFileByTimestamp(config.getQDCDir(), "qdc_calibration", timestampStr),
+                              config.getAbsolutePath("main", "qdc_calibration_table"), true);
+            return output;
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_PROCESS_QDC_CALIBRATION");
             return false;
@@ -329,13 +345,14 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_CONVERT_RAW_TO_RAW
     table_[TOFCommandCode::RUN_CONVERT_RAW_TO_RAW] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getLatestTimestamp(config.getSTG0Dir(), "run");
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Converting raw to raw...");
             long long eventFractionToWrite = argv.size() > 1 ? static_cast<long long>(argv[0]) : 1024;
 
             return analyzer_.runPetsysConvertRawToRaw(
                 config.getConfigFilePath(),
-                "run_test",
-                "run_test_raw.root",
+                config.getFileByTimestamp(config.getSTG0Dir(), "run", timestampStr),
+                config.makeFilePathWithTimestamp(config.getSTG1Dir(), "run", timestampStr, "stg1.root"),
                 eventFractionToWrite
             );
         } catch (...) {
@@ -347,6 +364,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_CONVERT_RAW_TO_SINGLES
     table_[TOFCommandCode::RUN_CONVERT_RAW_TO_SINGLES] = [&](const std::vector<int>& argv) {
         try {
+            auto timestampStr = config.getLatestTimestamp(config.getSTG0Dir(), "run");
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Converting raw to singles...");
             PETSYS::FILE_TYPE fileType = argv.size() > 0 ? static_cast<PETSYS::FILE_TYPE>(argv[0]) : PETSYS::FILE_ROOT;
             long long eventFractionToWrite = argv.size() > 1 ? static_cast<long long>(argv[1]) : 1024;
@@ -354,8 +372,8 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
 
             return analyzer_.runPetsysConvertRawToSingles(
                 config.getConfigFilePath(),
-                "run_test",
-                "run_test_single.root",
+                config.getFileByTimestamp(config.getSTG0Dir(), "run", timestampStr),
+                config.makeFilePathWithTimestamp(config.getSTG1Dir(), "run", timestampStr, "root_singles"),
                 fileType,
                 eventFractionToWrite,
                 fileSplitTime
