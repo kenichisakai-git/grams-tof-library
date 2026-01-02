@@ -77,6 +77,8 @@ enum class CommunicationCodes : uint16_t {
   TOF_Run_Acquire_TDC_Calibration = construct_code(0x107, COM_SUBSYSTEM_TOF_MSK),
   TOF_Run_Acquire_QDC_Calibration = construct_code(0x108, COM_SUBSYSTEM_TOF_MSK),
   TOF_Run_Acquire_SiPM_Data = construct_code(0x109, COM_SUBSYSTEM_TOF_MSK),
+  TOF_Run_Acquire_Threshold_Calibration_BN = construct_code(0x110, COM_SUBSYSTEM_TOF_MSK),
+  TOF_Run_Acquire_Threshold_Calibration_D  = construct_code(0x111, COM_SUBSYSTEM_TOF_MSK),
 
   TOF_Run_Process_Threshold_Calibration = construct_code(0x200, COM_SUBSYSTEM_TOF_MSK),
   TOF_Run_Process_TDC_Calibration = construct_code(0x201, COM_SUBSYSTEM_TOF_MSK),

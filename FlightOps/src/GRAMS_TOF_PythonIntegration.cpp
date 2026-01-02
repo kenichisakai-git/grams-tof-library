@@ -161,9 +161,10 @@ public:
                                               const std::string& outFilePrefix,
                                               int noise_reads = 4,
                                               int dark_reads = 4,
-                                              bool ext_bias = false) {
+                                              bool ext_bias = false, 
+                                              const std::string& mode = "all") {
         return runPythonFunction(scriptPath, "safe_acquire_threshold_calibration",
-                                 configFile, outFilePrefix, noise_reads, dark_reads, ext_bias);
+                                 configFile, outFilePrefix, noise_reads, dark_reads, ext_bias, mode);
     }
 
     bool runPetsysAcquireQdcCalibration(const std::string& scriptPath,
@@ -265,9 +266,10 @@ public:
                                               const std::string& outFilePrefix,
                                               int noise_reads,
                                               int dark_reads,
-                                              bool ext_bias) {
+                                              bool ext_bias,
+                                              const std::string& mode) {
         return impl_->runPetsysAcquireThresholdCalibration(scriptPath, configFile, outFilePrefix,
-                                                           noise_reads, dark_reads, ext_bias);
+                                                           noise_reads, dark_reads, ext_bias, mode);
     }
     
     bool runPetsysAcquireQdcCalibration(const std::string& scriptPath,
@@ -391,9 +393,10 @@ bool GRAMS_TOF_PythonIntegration::runPetsysAcquireThresholdCalibration(
     const std::string& outFilePrefix,
     int noise_reads,
     int dark_reads,
-    bool ext_bias) {
+    bool ext_bias,
+    const std::string& mode) {
     return impl_->runPetsysAcquireThresholdCalibration(scriptPath, configFile, outFilePrefix,
-                                                       noise_reads, dark_reads, ext_bias);
+                                                       noise_reads, dark_reads, ext_bias, mode);
 }
 
 bool GRAMS_TOF_PythonIntegration::runPetsysAcquireQdcCalibration(

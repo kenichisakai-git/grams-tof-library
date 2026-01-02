@@ -16,10 +16,10 @@ public:
     std::string getFileStem(const std::string& section, const std::string& key) const;
     std::string getFileStemWithDir(const std::string& section, const std::string& key) const;
     std::string getSubDir(const std::string& subDirName) const;
-    std::string getFileByTimestamp(const std::string& absDir, const std::string& prefix, const std::string& timestamp) const; 
+    std::string getFileByTimestamp(const std::string& absDir, const std::string& prefix, const std::string& timestamp, const std::string& suffix="") const; 
     std::string makeFilePathWithTimestamp(const std::string& absDir, const std::string& prefix, const std::string& timestamp, const std::string& ext="") const;
 
-    std::string getLatestTimestamp(const std::string& absDir, const std::string& prefix) const;
+    std::string getLatestTimestamp(const std::string& absDir, const std::string& prefix, const std::string& suffix="") const;
     std::string getCurrentTimestamp() const;
     void copyOrLink(const std::string& srcPath, const std::string& dstPath, bool symlink=true) const;
 
