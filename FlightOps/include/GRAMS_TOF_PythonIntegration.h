@@ -54,7 +54,8 @@ public:
                                               const std::string& outFilePrefix,
                                               int noise_reads,
                                               int dark_reads,
-                                              bool ext_bias);
+                                              bool ext_bias,
+                                              const std::string& mode);
     bool runPetsysAcquireQdcCalibration(const std::string& scriptPath,
                                         const std::string& configPath,
                                         const std::string& fileNamePrefix);

@@ -130,7 +130,8 @@ std::string GRAMS_TOF_Config::getFileStemWithDir(const std::string& section, con
 std::string GRAMS_TOF_Config::getFileByTimestamp(
     const std::string& absDir,
     const std::string& prefix,
-    const std::string& timestamp) const
+    const std::string& timestamp,
+    const std::string& suffix) const
 {
     namespace fs = std::filesystem;
 
@@ -138,7 +139,8 @@ std::string GRAMS_TOF_Config::getFileByTimestamp(
     if (!fs::exists(dir) || !fs::is_directory(dir))
         throw std::runtime_error("Directory does not exist: " + dir.string());
 
-    std::regex re(prefix + "_" + timestamp + R"(.*)");
+    std::string pattern = prefix + "_" + timestamp + suffix + R"(.*)";
+    std::regex re(pattern);
 
     for (const auto& entry : fs::directory_iterator(dir)) {
         if (!entry.is_regular_file()) continue;
@@ -149,9 +151,11 @@ std::string GRAMS_TOF_Config::getFileByTimestamp(
     }
 
     throw std::runtime_error(
-        "No file found for timestamp " + timestamp + " in " + dir.string()
+        "No file found for timestamp " + timestamp + 
+        " with suffix '" + suffix + "' in " + dir.string()
     );
 }
+
 
 std::string GRAMS_TOF_Config::makeFilePathWithTimestamp(
     const std::string& absDir,
@@ -168,9 +172,11 @@ std::string GRAMS_TOF_Config::makeFilePathWithTimestamp(
     return (dir / (prefix + "_" + timestamp + dotExt)).string();
 }
 
+
 std::string GRAMS_TOF_Config::getLatestTimestamp(
     const std::string& absDir,
-    const std::string& prefix) const
+    const std::string& prefix,
+    const std::string& suffix) const 
 {
     namespace fs = std::filesystem;
 
@@ -178,7 +184,7 @@ std::string GRAMS_TOF_Config::getLatestTimestamp(
     if (!fs::exists(dir) || !fs::is_directory(dir))
         throw std::runtime_error("Directory does not exist: " + dir.string());
 
-    std::regex re(prefix + R"(_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d+Z).*)");
+    std::regex re(prefix + R"(_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.\d+Z))" + suffix + R"(.*)");
 
     std::string latestTs;
 
@@ -187,18 +193,22 @@ std::string GRAMS_TOF_Config::getLatestTimestamp(
 
         std::smatch match;
         std::string filename = entry.path().filename().string();
-        if (!std::regex_match(filename, match, re)) continue;
-
-        const std::string& ts = match[1];
-        if (latestTs.empty() || ts > latestTs)
-            latestTs = ts;
+        
+        if (std::regex_match(filename, match, re)) {
+            const std::string& ts = match[1].str();
+            if (latestTs.empty() || ts > latestTs) {
+                latestTs = ts;
+            }
+        }
     }
 
-    if (latestTs.empty())
-        throw std::runtime_error("No matching file found in " + dir.string());
+    if (latestTs.empty()) {
+        throw std::runtime_error("No matching file found with suffix '" + suffix + "' in " + dir.string());
+    }
 
     return latestTs;
 }
+
 
 std::string GRAMS_TOF_Config::getCurrentTimestamp() const
 {

@@ -209,10 +209,51 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
                 config.makeFilePathWithTimestamp(config.getCalibrationDir(), "disc_calibration", timestampStr),
                 argv.size() > 0 ? argv[0] : 4,
                 argv.size() > 1 ? argv[1] : 4,
-                argv.size() > 2 ? static_cast<bool>(argv[2]) : false
+                argv.size() > 2 ? static_cast<bool>(argv[2]) : false,
+                "all"
             );
         } catch (...) {
             Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_ACQUIRE_THRESHOLD_CALIBRATION");
+            return false;
+        }
+    };
+
+    // RUN_ACQUIRE_THRESHOLD_CALIBRATION_BN (Baseline and Noise only) ---
+    table_[TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION_BN] = [&](const std::vector<int>& argv) {
+        try {
+            auto timestampStr = config.getCurrentTimestamp();
+            Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing Baseline/Noise calibration...");
+            return pyint_.runPetsysAcquireThresholdCalibration(
+                "scripts.acquire_threshold_calibration",
+                config.getConfigFilePath(),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "disc_calibration", timestampStr),
+                argv.size() > 0 ? argv[0] : 4,      // noise_reads
+                argv.size() > 1 ? argv[1] : 4,      // dark_reads (ignored by script in this mode)
+                argv.size() > 2 ? static_cast<bool>(argv[2]) : false, // ext_bias
+                "baseline_noise"                    // mode
+            );
+        } catch (...) {
+            Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_ACQUIRE_THRESHOLD_CALIBRATION_BN");
+            return false;
+        }
+    };
+    
+    // RUN_ACQUIRE_THRESHOLD_CALIBRATION_D (Dark counts only) ---
+    table_[TOFCommandCode::RUN_ACQUIRE_THRESHOLD_CALIBRATION_D] = [&](const std::vector<int>& argv) {
+        try {
+            auto timestampStr = config.getCurrentTimestamp();
+            Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Executing Dark calibration...");
+            return pyint_.runPetsysAcquireThresholdCalibration(
+                "scripts.acquire_threshold_calibration",
+                config.getConfigFilePath(),
+                config.makeFilePathWithTimestamp(config.getCalibrationDir(), "disc_calibration", timestampStr),
+                argv.size() > 0 ? argv[0] : 4,      // noise_reads (ignored by script in this mode)
+                argv.size() > 1 ? argv[1] : 4,      // dark_reads
+                argv.size() > 2 ? static_cast<bool>(argv[2]) : false, // ext_bias
+                "dark"                              // mode
+            );
+        } catch (...) {
+            Logger::instance().error("[GRAMS_TOF_CommandDispatch] Exception in RUN_ACQUIRE_THRESHOLD_CALIBRATION_D");
             return false;
         }
     };
@@ -272,7 +313,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
     // RUN_PROCESS_THRESHOLD_CALIBRATION
     table_[TOFCommandCode::RUN_PROCESS_THRESHOLD_CALIBRATION] = [&](const std::vector<int>& argv) {
         try {
-            auto timestampStr = config.getLatestTimestamp(config.getCalibrationDir(), "disc_calibration");
+            auto timestampStr = config.getLatestTimestamp(config.getCalibrationDir(), "disc_calibration", "_noise.tsv");
             Logger::instance().warn("[GRAMS_TOF_CommandDispatch] Running threshold calibration...");
             auto output = analyzer_.runPetsysProcessThresholdCalibration(
                 config.getConfigFilePath(),
@@ -351,7 +392,7 @@ GRAMS_TOF_CommandDispatch::GRAMS_TOF_CommandDispatch(
 
             return analyzer_.runPetsysConvertRawToRaw(
                 config.getConfigFilePath(),
-                config.getFileByTimestamp(config.getSTG0Dir(), "run", timestampStr),
+                config.makeFilePathWithTimestamp(config.getSTG0Dir(), "run", timestampStr),
                 config.makeFilePathWithTimestamp(config.getSTG1Dir(), "run", timestampStr, "stg1.root"),
                 eventFractionToWrite
             );
